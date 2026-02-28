@@ -1,0 +1,90 @@
+# === Rust ===
+/target
+**/*.rs.bk
+Cargo.lock
+
+# === IDE ===
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+*.code-workspace
+.history/
+
+# Vim
+*.swp
+*.swo
+*~
+.session
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# === OS ===
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+*.stackdump
+[Dd]esktop.ini
+
+# Linux
+*~
+.nfs*
+.directory
+
+# === Logs ===
+*.log
+logs/
+log/
+
+# === Local configuration ===
+config.local.toml
+.env
+.env.local
+.env.*.local
+
+# === Coverage ===
+coverage/
+*.lcov
+.tarpaulin*
+
+# === Documentation build ===
+docs/_build/
+docs/site/
+
+# === Temporary files ===
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+
+# === Build artifacts ===
+dist/
+build/
+*.dmg
+*.msi
+*.AppImage
+
+# === wix ===
+wix/
+*.wixobj
+*.wixpdb

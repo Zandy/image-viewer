@@ -1,0 +1,32 @@
+[features]
+all-features = true
+
+[run]
+timeout = "120s"
+exclude-files = [
+    "src/app/ui.rs",
+    "src/app/widgets.rs",
+    "src/viewer/render.rs",
+    "**/*_ui.rs",
+    "**/ui/**",
+    "src/main.rs",
+    "target/**",
+    "**/test_utils.rs",
+    "**/tests/**",
+    "vendor/**",
+]
+exclude-lines = [
+    "#\\[derive",
+    "#\\[error",
+    "#\\[allow",
+    "unimplemented!",
+    "todo!",
+    "panic!",
+]
+
+[output]
+formats = ["html", "xml"]
+output-dir = "coverage"
+
+[report]
+show-uncovered = true

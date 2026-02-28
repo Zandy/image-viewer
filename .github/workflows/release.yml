@@ -1,0 +1,291 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_NET_RETRY: 10
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Generate changelog
+  changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    outputs:
+      release_body: ${{ steps.changelog.outputs.release_body }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get version from tag
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+    
+    - name: Generate changelog
+      id: changelog
+      run: |
+        VERSION=${{ steps.version.outputs.version }}
+        
+        # Get previous tag
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        if [ -z "$PREV_TAG" ]; then
+          COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+        else
+          COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges $PREV_TAG..HEAD)
+        fi
+        
+        FEATURES=$(echo "$COMMITS" | grep -E "^\-\s*(feat|feature|add)" || true)
+        FIXES=$(echo "$COMMITS" | grep -E "^\-\s*(fix|bugfix|hotfix)" || true)
+        DOCS=$(echo "$COMMITS" | grep -E "^\-\s*(doc|docs)" || true)
+        REFACTOR=$(echo "$COMMITS" | grep -E "^\-\s*(refactor|perf)" || true)
+        OTHER=$(echo "$COMMITS" | grep -vE "^\-\s*(feat|feature|add|fix|bugfix|hotfix|doc|docs|refactor|perf)" || true)
+        
+        BODY="## What's Changed
+
+"
+        
+        if [ -n "$FEATURES" ]; then
+          BODY+="### 🚀 Features
+$FEATURES
+
+"
+        fi
+        
+        if [ -n "$FIXES" ]; then
+          BODY+="### 🐛 Bug Fixes
+$FIXES
+
+"
+        fi
+        
+        if [ -n "$REFACTOR" ]; then
+          BODY+="### ⚡ Performance & Refactoring
+$REFACTOR
+
+"
+        fi
+        
+        if [ -n "$DOCS" ]; then
+          BODY+="### 📚 Documentation
+$DOCS
+
+"
+        fi
+        
+        if [ -n "$OTHER" ]; then
+          BODY+="### 🔧 Other Changes
+$OTHER
+
+"
+        fi
+        
+        BODY+="**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG:-HEAD}...$VERSION"
+        
+        echo "$BODY" > RELEASE_NOTES.md
+        cat RELEASE_NOTES.md
+        
+        {
+          echo 'release_body<<EOF'
+          echo "$BODY"
+          echo 'EOF'
+        } >> $GITHUB_OUTPUT
+
+  # Build release binaries
+  build-release:
+    name: Build Release (${{ matrix.name }})
+    needs: changelog
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            name: linux-x86_64
+            binary_name: image-viewer
+            archive_ext: tar.gz
+            archive_cmd: tar czvf
+          
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            name: linux-aarch64
+            binary_name: image-viewer
+            archive_ext: tar.gz
+            archive_cmd: tar czvf
+            cross: true
+          
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            name: windows-x86_64
+            binary_name: image-viewer.exe
+            archive_ext: zip
+            archive_cmd: 7z a
+          
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            name: macos-x86_64
+            binary_name: image-viewer
+            archive_ext: tar.gz
+            archive_cmd: tar czvf
+          
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            name: macos-aarch64
+            binary_name: image-viewer
+            archive_ext: tar.gz
+            archive_cmd: tar czvf
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+    
+    - name: Install cross
+      if: matrix.cross
+      uses: taiki-e/install-action@cross
+    
+    - name: Install system dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev \
+          libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+    
+    - name: Install create-dmg (macOS)
+      if: runner.os == 'macOS'
+      run: brew install create-dmg || true
+    
+    - name: Cache cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: "release-${{ matrix.target }}"
+    
+    - name: Build release (native)
+      if: '!matrix.cross'
+      run: cargo build --release --target ${{ matrix.target }}
+    
+    - name: Build release (cross)
+      if: matrix.cross
+      run: cross build --release --target ${{ matrix.target }}
+    
+    - name: Package (Linux/Unix)
+      if: matrix.archive_ext == 'tar.gz'
+      run: |
+        mkdir -p dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}
+        cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
+        cp README.md LICENSE dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
+        cd dist
+        ${{ matrix.archive_cmd }} ../image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.${{ matrix.archive_ext }} image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
+    
+    - name: Package (Windows)
+      if: matrix.archive_ext == 'zip'
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force -Path "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}"
+        Copy-Item "target\${{ matrix.target }}\release\${{ matrix.binary_name }}" "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
+        Copy-Item "README.md" "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
+        Copy-Item "LICENSE" "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
+        cd dist
+        ${{ matrix.archive_cmd }} ..\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.${{ matrix.archive_ext }} image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\
+    
+    - name: Create DMG (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        mkdir -p dist/dmg
+        cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} dist/dmg/
+        cp README.md LICENSE dist/dmg/
+        create-dmg \
+          --volname "Image Viewer ${{ needs.changelog.outputs.version }}" \
+          --window-size 800 400 \
+          --icon-size 100 \
+          "image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.dmg" \
+          dist/dmg/ 2>/dev/null || echo "DMG creation skipped"
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: image-viewer-${{ matrix.name }}
+        path: |
+          image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.*
+        if-no-files-found: ignore
+
+  # Create MSI installer
+  build-msi:
+    name: Build MSI (Windows)
+    needs: changelog
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Cache cargo
+      uses: Swatinem/rust-cache@v2
+    
+    - name: Install cargo-wix
+      run: cargo install cargo-wix
+    
+    - name: Build MSI
+      shell: pwsh
+      run: |
+        if (-not (Test-Path "wix\main.wxs")) {
+          cargo wix init --force
+        }
+        cargo wix --no-build --output target/wix/image-viewer.msi
+      continue-on-error: true
+    
+    - name: Upload MSI
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: image-viewer-windows-msi
+        path: target/wix/image-viewer.msi
+
+  # Create GitHub Release
+  create-release:
+    name: Create GitHub Release
+    needs: [changelog, build-release, build-msi]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        merge-multiple: true
+    
+    - name: List artifacts
+      run: ls -la artifacts/
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Image Viewer ${{ needs.changelog.outputs.version }}
+        body: ${{ needs.changelog.outputs.release_body }}
+        files: artifacts/*
+        draft: false
+        prerelease: ${{ contains(needs.changelog.outputs.version, '-') }}
+        generate_release_notes: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

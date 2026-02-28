@@ -1,0 +1,217 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  CARGO_NET_RETRY: 10
+  RUSTFLAGS: "-D warnings"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Format check
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt
+    
+    - name: Check formatting
+      run: cargo fmt -- --check
+
+  # Clippy linting with strict mode
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev \
+          libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+    
+    - name: Cache cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: "clippy"
+    
+    - name: Run clippy (all features)
+      run: cargo clippy --all-features --all-targets -- -D warnings -W clippy::all
+
+  # Build and test on multiple platforms
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: x86_64-apple-darwin
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+    
+    - name: Install system dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev \
+          libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+    
+    - name: Cache cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: "test-${{ matrix.os }}"
+    
+    - name: Build debug
+      run: cargo build --target ${{ matrix.target }}
+    
+    - name: Run unit tests
+      run: cargo test --lib --target ${{ matrix.target }}
+    
+    - name: Run integration tests
+      run: cargo test --test '*' --target ${{ matrix.target }}
+    
+    - name: Run doc tests
+      run: cargo test --doc --target ${{ matrix.target }}
+
+  # Coverage with cargo-tarpaulin (85% gate)
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    needs: [fmt, clippy]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev \
+          libxcb-xfixes0-dev libxkbcommon-dev libssl-dev libxml2-utils
+    
+    - name: Install cargo-tarpaulin
+      uses: taiki-e/install-action@cargo-tarpaulin
+    
+    - name: Cache cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: "coverage"
+    
+    - name: Generate coverage report
+      run: |
+        cargo tarpaulin --verbose --all-features --workspace \
+          --timeout 120 --out xml --out html --output-dir coverage
+    
+    - name: Upload coverage HTML artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/
+        retention-days: 30
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage/cobertura.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+        verbose: true
+    
+    - name: Check coverage threshold (85%)
+      run: |
+        # Extract coverage percentage from XML
+        COVERAGE=$(xmllint --xpath "string(//coverage/@line-rate)" coverage/cobertura.xml)
+        COVERAGE_PCT=$(echo "$COVERAGE * 100" | bc)
+        echo "Coverage: ${COVERAGE_PCT}%"
+        
+        # Compare with threshold
+        THRESHOLD=85.0
+        if (( $(echo "$COVERAGE_PCT < $THRESHOLD" | bc -l) )); then
+          echo "❌ Coverage ${COVERAGE_PCT}% is below threshold ${THRESHOLD}%"
+          exit 1
+        else
+          echo "✅ Coverage ${COVERAGE_PCT}% meets threshold ${THRESHOLD}%"
+        fi
+
+  # Build release artifacts for verification
+  build-release-check:
+    name: Release Build Check
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: x86_64-apple-darwin
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+    
+    - name: Install system dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev \
+          libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+    
+    - name: Cache cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: "release-${{ matrix.os }}"
+    
+    - name: Build release
+      run: cargo build --release --target ${{ matrix.target }}
+    
+    - name: Check binary size
+      shell: bash
+      run: |
+        if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+          ls -lh target/${{ matrix.target }}/release/image-viewer.exe || true
+        else
+          ls -lh target/${{ matrix.target }}/release/image-viewer || true
+        fi

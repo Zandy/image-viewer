@@ -1,0 +1,53 @@
+# Image Viewer Configuration File
+# 
+# This is an example configuration file. Copy this to your platform-specific
+# config directory and modify as needed:
+#
+# - Linux: ~/.config/image-viewer/config.toml
+# - macOS: ~/Library/Application Support/com.imageviewer.image-viewer/config.toml
+# - Windows: %APPDATA%\image-viewer\config.toml
+
+[window]
+# Window dimensions (will be restored on restart)
+width = 1200.0
+height = 800.0
+
+# Window position (None/null for center)
+# x = 100.0
+# y = 50.0
+
+# Window state
+maximized = false
+
+[gallery]
+# Thumbnail size in pixels (80-200)
+thumbnail_size = 120
+
+# Items per row (0 = auto-calculate)
+items_per_row = 0
+
+# Grid spacing between thumbnails in pixels
+grid_spacing = 12.0
+
+# Show filenames under thumbnails
+show_filenames = true
+
+[viewer]
+# Background color [R, G, B] (0-255)
+background_color = [30, 30, 30]
+
+# Fit image to window on open
+fit_to_window = true
+
+# Show info panel by default
+show_info_panel = false
+
+# Zoom limits (10% to 2000%)
+min_scale = 0.1    # 10%
+max_scale = 20.0   # 2000%
+
+# Zoom step multiplier (1.25 = 25% per step)
+zoom_step = 1.25
+
+# Enable smooth scrolling
+smooth_scroll = true

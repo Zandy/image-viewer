@@ -1,0 +1,121 @@
+name: Coverage Report
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage-report:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev \
+          libxcb-xfixes0-dev libxkbcommon-dev libssl-dev libxml2-utils bc
+    
+    - name: Install cargo-tarpaulin
+      uses: taiki-e/install-action@cargo-tarpaulin
+    
+    - name: Cache cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: "coverage-report"
+    
+    - name: Generate coverage report
+      run: |
+        cargo tarpaulin --verbose --all-features --workspace \
+          --timeout 120 --out xml --out html --output-dir coverage
+    
+    - name: Parse coverage results
+      id: coverage
+      run: |
+        COVERAGE=$(xmllint --xpath "string(//coverage/@line-rate)" coverage/cobertura.xml)
+        COVERAGE_PCT=$(echo "$COVERAGE * 100" | bc)
+        COVERAGE_ROUNDED=$(printf "%.2f" $COVERAGE_PCT)
+        echo "percentage=$COVERAGE_ROUNDED" >> $GITHUB_OUTPUT
+        echo "Coverage: $COVERAGE_ROUNDED%"
+        
+        # Extract coverage by file for detailed report
+        echo "### Coverage by Module" > coverage_summary.md
+        echo "" >> coverage_summary.md
+        xmllint --xpath "//class[@line-rate<1.0]/@filename" coverage/cobertura.xml 2>/dev/null | \
+          tr ' ' '\n' | head -20 | while read line; do
+          file=$(echo $line | grep -o 'filename="[^"]*"' | cut -d'"' -f2)
+          rate=$(xmllint --xpath "//class[@filename='$file']/@line-rate" coverage/cobertura.xml 2>/dev/null | grep -o '[0-9.]*')
+          if [ -n "$rate" ]; then
+            pct=$(echo "$rate * 100" | bc)
+            printf "- \`%s\`: %.1f%%\n" "$file" "$pct" >> coverage_summary.md
+          fi
+        done
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage/cobertura.xml
+        flags: pr
+        name: pr-coverage
+        fail_ci_if_error: false
+        verbose: true
+    
+    - name: Comment PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const coverage = '${{ steps.coverage.outputs.percentage }}';
+          const threshold = 85.0;
+          const status = parseFloat(coverage) >= threshold ? '✅' : '❌';
+          const summary = fs.readFileSync('coverage_summary.md', 'utf8');
+          
+          const body = `## 📊 Code Coverage Report
+          
+          ${status} **Overall Coverage: ${coverage}%** (threshold: ${threshold}%)
+          
+          ${summary}
+          
+          <!-- coverage-report -->`;
+          
+          // Find existing comment
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number
+          });
+          
+          const existingComment = comments.find(c => c.body.includes('<!-- coverage-report -->'));
+          
+          if (existingComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: body
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+          }

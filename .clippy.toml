@@ -1,0 +1,5 @@
+# Clippy configuration
+# https://doc.rust-lang.org/clippy/configuration.html
+
+avoid-breaking-exported-api = false
+msrv = "1.70"

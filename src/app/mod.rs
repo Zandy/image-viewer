@@ -423,6 +423,9 @@ impl eframe::App for ImageViewerApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         self.viewer.set_ctx(ctx.clone());
         
+        // 初始化画廊缩略图加载器
+        self.gallery.init_thumbnail_loader(ctx);
+        
         // Process any pending files from drag-drop or dialog
         self.process_pending_files();
         

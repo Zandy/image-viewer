@@ -124,7 +124,7 @@ impl Default for ViewerConfig {
 
 impl Config {
     /// 从平台特定的配置目录加载配置。
-    /// 
+    ///
     /// 如果配置文件不存在，创建默认配置并保存。
     /// 如果配置文件损坏或无效，记录警告并返回默认配置。
     ///
@@ -193,14 +193,13 @@ impl Config {
     /// - `Err(anyhow::Error)` - 创建目录或写入文件失败
     pub fn save(&self) -> Result<()> {
         let config_path = Self::config_path()?;
-        
+
         if let Some(parent) = config_path.parent() {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("无法创建配置目录: {:?}", parent))?;
         }
 
-        let content = toml::to_string_pretty(self)
-            .with_context(|| "序列化配置到TOML失败")?;
+        let content = toml::to_string_pretty(self).with_context(|| "序列化配置到TOML失败")?;
 
         std::fs::write(&config_path, content)
             .with_context(|| format!("无法写入配置到 {:?}", config_path))?;
@@ -226,7 +225,7 @@ impl Config {
     pub fn config_path() -> Result<PathBuf> {
         let proj_dirs = ProjectDirs::from("com", "imageviewer", "image-viewer")
             .context("无法确定配置目录: 未找到主目录")?;
-        
+
         Ok(proj_dirs.config_dir().join("config.toml"))
     }
 
@@ -236,7 +235,7 @@ impl Config {
     pub fn config_dir() -> Result<PathBuf> {
         let proj_dirs = ProjectDirs::from("com", "imageviewer", "image-viewer")
             .context("无法确定配置目录: 未找到主目录")?;
-        
+
         Ok(proj_dirs.config_dir().to_path_buf())
     }
 
@@ -258,11 +257,16 @@ impl Config {
     /// 从eframe窗口信息更新窗口状态。
     ///
     /// 在窗口关闭或想要保存当前状态时调用。
-    pub fn update_from_window(&mut self, inner_size: [f32; 2], position: Option<[f32; 2]>, maximized: bool) {
+    pub fn update_from_window(
+        &mut self,
+        inner_size: [f32; 2],
+        position: Option<[f32; 2]>,
+        maximized: bool,
+    ) {
         self.window.width = inner_size[0];
         self.window.height = inner_size[1];
         self.window.maximized = maximized;
-        
+
         if let Some([x, y]) = position {
             self.window.x = Some(x);
             self.window.y = Some(y);
@@ -301,7 +305,7 @@ impl GalleryConfig {
     fn validate(&self) -> Self {
         const MIN_THUMBNAIL: u32 = 80;
         const MAX_THUMBNAIL: u32 = 200;
-        
+
         Self {
             thumbnail_size: self.thumbnail_size.clamp(MIN_THUMBNAIL, MAX_THUMBNAIL),
             items_per_row: self.items_per_row.max(1),
@@ -317,7 +321,7 @@ impl ViewerConfig {
         let min_scale = self.min_scale.max(0.01);
         let max_scale = self.max_scale.max(min_scale * 2.0);
         let zoom_step = self.zoom_step.clamp(1.01, 2.0);
-        
+
         Self {
             background_color: [
                 self.background_color[0],
@@ -346,20 +350,20 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = Config::default();
-        
+
         // 窗口默认值
         assert_eq!(config.window.width, 1200.0);
         assert_eq!(config.window.height, 800.0);
         assert_eq!(config.window.x, None);
         assert_eq!(config.window.y, None);
         assert!(!config.window.maximized);
-        
+
         // 图库默认值
         assert_eq!(config.gallery.thumbnail_size, 120);
         assert_eq!(config.gallery.items_per_row, 0);
         assert_eq!(config.gallery.grid_spacing, 12.0);
         assert!(config.gallery.show_filenames);
-        
+
         // 查看器默认值
         assert_eq!(config.viewer.background_color, [30, 30, 30]);
         assert!(config.viewer.fit_to_window);
@@ -378,12 +382,12 @@ mod tests {
     fn test_toml_serialization() {
         let config = Config::default();
         let toml_str = toml::to_string_pretty(&config).expect("序列化失败");
-        
+
         // 验证TOML包含预期部分
         assert!(toml_str.contains("[window]"));
         assert!(toml_str.contains("[gallery]"));
         assert!(toml_str.contains("[viewer]"));
-        
+
         // 验证一些值存在
         assert!(toml_str.contains("width = 1200"));
         assert!(toml_str.contains("thumbnail_size = 120"));
@@ -417,18 +421,18 @@ smooth_scroll = false
 "#;
 
         let config: Config = toml::from_str(toml_str).expect("反序列化失败");
-        
+
         assert_eq!(config.window.width, 1920.0);
         assert_eq!(config.window.height, 1080.0);
         assert_eq!(config.window.x, Some(100.0));
         assert_eq!(config.window.y, Some(50.0));
         assert!(config.window.maximized);
-        
+
         assert_eq!(config.gallery.thumbnail_size, 150);
         assert_eq!(config.gallery.items_per_row, 5);
         assert_eq!(config.gallery.grid_spacing, 16.0);
         assert!(!config.gallery.show_filenames);
-        
+
         assert_eq!(config.viewer.background_color, [50, 50, 50]);
         assert!(!config.viewer.fit_to_window);
         assert!(config.viewer.show_info_panel);
@@ -467,7 +471,7 @@ smooth_scroll = false
 
         let toml_str = toml::to_string_pretty(&original).unwrap();
         let deserialized: Config = toml::from_str(&toml_str).unwrap();
-        
+
         assert_eq!(original, deserialized);
     }
 
@@ -515,12 +519,12 @@ smooth_scroll = true
 "#;
 
         let config: Config = toml::from_str(complete_toml).expect("应能解析完整配置");
-        
+
         // 指定的值
         assert_eq!(config.window.width, 1400.0);
         assert_eq!(config.window.height, 900.0);
         assert!(config.window.maximized);
-        
+
         // 检查其他部分
         assert_eq!(config.gallery.thumbnail_size, 150);
         assert_eq!(config.viewer.min_scale, 0.1);
@@ -546,15 +550,15 @@ width = 100
     fn test_window_validation() {
         let config = Config {
             window: WindowConfig {
-                width: 100.0,  // 太小
-                height: 50.0,  // 太小
+                width: 100.0, // 太小
+                height: 50.0, // 太小
                 ..Default::default()
             },
             ..Default::default()
         };
 
         let validated = config.validate();
-        
+
         // 应限制到最小值
         assert_eq!(validated.window.width, 400.0);
         assert_eq!(validated.window.height, 300.0);
@@ -565,7 +569,7 @@ width = 100
         // 测试缩略图大小限制 - 太小
         let config = Config {
             gallery: GalleryConfig {
-                thumbnail_size: 50,  // 低于最小值
+                thumbnail_size: 50, // 低于最小值
                 ..Default::default()
             },
             ..Default::default()
@@ -576,7 +580,7 @@ width = 100
         // 测试缩略图大小限制 - 太大
         let config = Config {
             gallery: GalleryConfig {
-                thumbnail_size: 300,  // 超过最大值
+                thumbnail_size: 300, // 超过最大值
                 ..Default::default()
             },
             ..Default::default()
@@ -602,7 +606,7 @@ width = 100
         let config = Config {
             viewer: ViewerConfig {
                 min_scale: 5.0,
-                max_scale: 1.0,  // 小于最小值
+                max_scale: 1.0, // 小于最小值
                 ..Default::default()
             },
             ..Default::default()
@@ -613,7 +617,7 @@ width = 100
         // 测试缩放步长限制 - 太小
         let config = Config {
             viewer: ViewerConfig {
-                zoom_step: 1.005,  // 低于最小值
+                zoom_step: 1.005, // 低于最小值
                 ..Default::default()
             },
             ..Default::default()
@@ -624,7 +628,7 @@ width = 100
         // 测试缩放步长限制 - 太大
         let config = Config {
             viewer: ViewerConfig {
-                zoom_step: 5.0,  // 超过最大值
+                zoom_step: 5.0, // 超过最大值
                 ..Default::default()
             },
             ..Default::default()
@@ -637,13 +641,13 @@ width = 100
     fn test_negative_scale_handling() {
         let config = Config {
             viewer: ViewerConfig {
-                min_scale: -0.5,  // 无效负数
-                max_scale: -1.0,  // 无效负数
+                min_scale: -0.5, // 无效负数
+                max_scale: -1.0, // 无效负数
                 ..Default::default()
             },
             ..Default::default()
         };
-        
+
         let validated = config.validate();
         assert!(validated.viewer.min_scale > 0.0);
         assert!(validated.viewer.max_scale > validated.viewer.min_scale);
@@ -703,7 +707,7 @@ width = 100
 
         let config = Config::default();
         let content = toml::to_string_pretty(&config).unwrap();
-        
+
         // Create parent directories
         std::fs::create_dir_all(&nested_dir).unwrap();
         std::fs::write(&config_path, content).unwrap();
@@ -718,9 +722,9 @@ width = 100
     #[test]
     fn test_update_from_window() {
         let mut config = Config::default();
-        
+
         config.update_from_window([1600.0, 900.0], Some([100.0, 50.0]), true);
-        
+
         assert_eq!(config.window.width, 1600.0);
         assert_eq!(config.window.height, 900.0);
         assert_eq!(config.window.x, Some(100.0));
@@ -731,9 +735,9 @@ width = 100
     #[test]
     fn test_update_from_window_without_position() {
         let mut config = Config::default();
-        
+
         config.update_from_window([1400.0, 800.0], None, false);
-        
+
         assert_eq!(config.window.width, 1400.0);
         assert_eq!(config.window.height, 800.0);
         // 位置应保持不变当传入None时
@@ -786,9 +790,8 @@ width = 100
         // 不完整的TOML应解析失败
         let result: Result<Config, _> = toml::from_str(empty);
         assert!(result.is_err());
-        
+
         // 所有值应为默认值
-        
     }
 
     #[test]
@@ -819,10 +822,10 @@ smooth_scroll = true
 
         let config: Config = toml::from_str(toml_str).expect("应能解析");
         let validated = config.validate();
-        
+
         // 值应被限制
-        assert_eq!(validated.window.width, 1000000.0);  // 窗口大小没有上限
-        assert_eq!(validated.gallery.thumbnail_size, 200);  // 限制到最大值
+        assert_eq!(validated.window.width, 1000000.0); // 窗口大小没有上限
+        assert_eq!(validated.gallery.thumbnail_size, 200); // 限制到最大值
     }
 
     #[test]
@@ -857,7 +860,6 @@ smooth_scroll = true
         assert_eq!(config.window.width, 1200.0);
         assert_eq!(config.window.height, 800.0);
     }
-
 
     #[test]
     fn test_config_with_all_fields() {
@@ -1005,7 +1007,7 @@ smooth_scroll = false
     fn test_debug_format() {
         let config = Config::default();
         let debug_str = format!("{:?}", config);
-        
+
         assert!(debug_str.contains("Config"));
         assert!(debug_str.contains("window"));
         assert!(debug_str.contains("gallery"));

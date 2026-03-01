@@ -8,7 +8,7 @@ use std::path::Path;
 /// Format a file size for display
 pub fn format_file_size(size: u64) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB"];
-    
+
     if size == 0 {
         return "0 B".to_string();
     }
@@ -33,7 +33,8 @@ pub fn file_name_from_path(path: &Path) -> String {
 
 /// Check if a path is likely an image file
 pub fn is_image_file(path: &Path) -> bool {
-    let ext = path.extension()
+    let ext = path
+        .extension()
         .and_then(|e| e.to_str())
         .map(|e| e.to_lowercase());
     matches!(
@@ -41,7 +42,6 @@ pub fn is_image_file(path: &Path) -> bool {
         Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "tiff" | "tif" | "bmp")
     )
 }
-
 
 #[cfg(test)]
 mod tests {

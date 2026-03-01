@@ -14,6 +14,7 @@ mod config;
 mod decoder;
 mod dnd;
 mod gallery;
+mod shortcuts_help;
 mod utils;
 mod viewer;
 
@@ -78,10 +79,10 @@ fn main() -> Result<()> {
 /// 配置字体支持，包括中文字体
 fn setup_fonts(ctx: &egui::Context) {
     use egui::FontFamily;
-    
+
     let mut fonts = egui::FontDefinitions::default();
     let mut font_loaded = false;
-    
+
     #[cfg(not(target_arch = "wasm32"))]
     {
         // 按优先级尝试不同平台的中文字体
@@ -103,7 +104,6 @@ fn setup_fonts(ctx: &egui::Context) {
             // Arial Unicode (备用)
             "/Library/Fonts/Arial Unicode.ttf",
             "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
-            
             // ===== Linux =====
             // Noto Sans CJK (主流发行版)
             "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
@@ -124,7 +124,6 @@ fn setup_fonts(ctx: &egui::Context) {
             "/usr/share/fonts/opentype/adobe-source-han-sans/SourceHanSansCN-Regular.otf",
             // 方正 (一些发行版)
             "/usr/share/fonts/fangzheng/fzyh.ttf",
-            
             // ===== Windows =====
             "C:\\Windows\\Fonts\\msyh.ttc",
             "C:\\Windows\\Fonts\\msyhbd.ttc",
@@ -133,7 +132,7 @@ fn setup_fonts(ctx: &egui::Context) {
             "C:\\Windows\\Fonts\\simkai.ttf",
             "C:\\Windows\\Fonts\\simfang.ttf",
         ];
-        
+
         for font_path in &font_sources {
             match std::fs::read(font_path) {
                 Ok(font_data) => {
@@ -141,11 +140,13 @@ fn setup_fonts(ctx: &egui::Context) {
                         "chinese_font".to_owned(),
                         egui::FontData::from_owned(font_data),
                     );
-                    fonts.families
+                    fonts
+                        .families
                         .entry(FontFamily::Proportional)
                         .or_default()
                         .insert(0, "chinese_font".to_owned());
-                    fonts.families
+                    fonts
+                        .families
                         .entry(FontFamily::Monospace)
                         .or_default()
                         .push("chinese_font".to_owned());
@@ -157,10 +158,10 @@ fn setup_fonts(ctx: &egui::Context) {
             }
         }
     }
-    
+
     if !font_loaded {
         warn!("No Chinese font loaded, menus may display as squares on some systems");
     }
-    
+
     ctx.set_fonts(fonts);
 }

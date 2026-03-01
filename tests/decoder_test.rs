@@ -20,18 +20,19 @@ fn test_image_format_detection() {
         ("image", false),
         ("", false),
     ];
-    
+
     for (filename, expected) in test_cases {
         let path = Path::new(filename);
-        let ext = path.extension()
+        let ext = path
+            .extension()
             .and_then(|e| e.to_str())
             .map(|e| e.to_lowercase());
-        
+
         let is_supported = matches!(
             ext.as_deref(),
             Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "tiff" | "tif" | "bmp")
         );
-        
+
         assert_eq!(is_supported, expected, "Failed for: {}", filename);
     }
 }
@@ -41,28 +42,23 @@ fn test_image_format_detection() {
 fn test_image_formats() {
     // 确保所有格式都能被正确识别
     let formats = vec![
-        "png", "PNG", "pNg",
-        "jpg", "JPG",
-        "jpeg", "JPEG",
-        "gif", "GIF",
-        "webp", "WEBP",
-        "tiff", "TIFF",
-        "tif", "TIF",
-        "bmp", "BMP",
+        "png", "PNG", "pNg", "jpg", "JPG", "jpeg", "JPEG", "gif", "GIF", "webp", "WEBP", "tiff",
+        "TIFF", "tif", "TIF", "bmp", "BMP",
     ];
-    
+
     for ext in formats {
         let path_str = format!("test.{}", ext);
         let path = Path::new(&path_str);
-        let detected_ext = path.extension()
+        let detected_ext = path
+            .extension()
             .and_then(|e| e.to_str())
             .map(|e| e.to_lowercase());
-        
+
         let is_supported = matches!(
             detected_ext.as_deref(),
             Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "tiff" | "tif" | "bmp")
         );
-        
+
         assert!(is_supported, "Format check failed for: {}", ext);
     }
 }
@@ -93,10 +89,14 @@ fn test_extension_edge_cases() {
         ("file", None),
         (".png", None),
     ];
-    
+
     for (path_str, expected_ext) in cases {
         let path = Path::new(path_str);
         let ext = path.extension().and_then(|e| e.to_str());
-        assert_eq!(ext, expected_ext, "Extension extraction failed for: {}", path_str);
+        assert_eq!(
+            ext, expected_ext,
+            "Extension extraction failed for: {}",
+            path_str
+        );
     }
 }

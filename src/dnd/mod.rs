@@ -5,17 +5,17 @@
 use std::path::PathBuf;
 
 /// 提取拖放文件中的图片文件路径
-/// 
+///
 /// 过滤并收集所有支持的图片格式文件路径。
-/// 
+///
 /// # Arguments
 /// * `dropped_files` - 拖放的文件列表
-/// 
+///
 /// # Returns
 /// 按原始顺序排列的图片文件路径列表
 pub fn extract_image_files(raw_files: &[egui::DroppedFile]) -> Vec<PathBuf> {
     let mut image_paths: Vec<PathBuf> = Vec::new();
-    
+
     for file in raw_files {
         if let Some(path) = &file.path {
             if path.is_file() && is_image_file(path) {
@@ -27,7 +27,7 @@ pub fn extract_image_files(raw_files: &[egui::DroppedFile]) -> Vec<PathBuf> {
             }
         }
     }
-    
+
     // 按文件名排序
     image_paths.sort();
     image_paths
@@ -36,7 +36,7 @@ pub fn extract_image_files(raw_files: &[egui::DroppedFile]) -> Vec<PathBuf> {
 /// 从目录中收集所有图片文件
 fn collect_images_from_dir(path: &std::path::Path) -> Vec<PathBuf> {
     let mut images: Vec<PathBuf> = Vec::new();
-    
+
     if let Ok(entries) = std::fs::read_dir(path) {
         for entry in entries.filter_map(|e| e.ok()) {
             let entry_path = entry.path();
@@ -45,17 +45,18 @@ fn collect_images_from_dir(path: &std::path::Path) -> Vec<PathBuf> {
             }
         }
     }
-    
+
     images.sort();
     images
 }
 
 /// 检查是否为支持的图片文件
 fn is_image_file(path: &std::path::Path) -> bool {
-    let ext = path.extension()
+    let ext = path
+        .extension()
         .and_then(|e| e.to_str())
         .map(|e| e.to_lowercase());
-    
+
     matches!(
         ext.as_deref(),
         Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "tiff" | "tif" | "bmp")
@@ -70,10 +71,13 @@ pub fn is_drag_hovering(ctx: &egui::Context) -> bool {
 /// 获取拖拽预览文本
 pub fn get_drag_preview_text(ctx: &egui::Context) -> Option<String> {
     ctx.input(|i| {
-        let count = i.raw.hovered_files.iter()
+        let count = i
+            .raw
+            .hovered_files
+            .iter()
             .filter(|f| f.path.is_some())
             .count();
-        
+
         if count > 0 {
             Some(format!("准备打开 {} 个文件", count))
         } else {
@@ -169,10 +173,8 @@ mod tests {
 
     #[test]
     fn test_supported_extensions_all() {
-        let extensions = vec![
-            "png", "jpg", "jpeg", "gif", "webp", "tiff", "tif", "bmp",
-        ];
-        
+        let extensions = vec!["png", "jpg", "jpeg", "gif", "webp", "tiff", "tif", "bmp"];
+
         for ext in extensions {
             let path_str = format!("test.{}", ext);
             let path = std::path::Path::new(&path_str);
@@ -182,10 +184,8 @@ mod tests {
 
     #[test]
     fn test_supported_extensions_uppercase() {
-        let extensions = vec![
-            "PNG", "JPG", "JPEG", "GIF", "WEBP", "TIFF", "TIF", "BMP",
-        ];
-        
+        let extensions = vec!["PNG", "JPG", "JPEG", "GIF", "WEBP", "TIFF", "TIF", "BMP"];
+
         for ext in extensions {
             let path_str = format!("test.{}", ext);
             let path = std::path::Path::new(&path_str);
@@ -196,10 +196,9 @@ mod tests {
     #[test]
     fn test_unsupported_extensions() {
         let extensions = vec![
-            "txt", "rs", "toml", "md", "pdf", "doc", "exe", "zip",
-            "mp4", "avi", "mp3", "svg",
+            "txt", "rs", "toml", "md", "pdf", "doc", "exe", "zip", "mp4", "avi", "mp3", "svg",
         ];
-        
+
         for ext in extensions {
             let path_str = format!("test.{}", ext);
             let path = std::path::Path::new(&path_str);
@@ -211,7 +210,11 @@ mod tests {
     fn test_is_image_file_with_path() {
         assert!(is_image_file(std::path::Path::new("/home/user/image.png")));
         assert!(is_image_file(std::path::Path::new("C:\\Users\\image.jpg")));
-        assert!(is_image_file(std::path::Path::new("./relative/path/image.gif")));
-        assert!(!is_image_file(std::path::Path::new("/home/user/document.txt")));
+        assert!(is_image_file(std::path::Path::new(
+            "./relative/path/image.gif"
+        )));
+        assert!(!is_image_file(std::path::Path::new(
+            "/home/user/document.txt"
+        )));
     }
 }

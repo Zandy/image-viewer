@@ -37,13 +37,13 @@ impl ThumbnailLoader {
         std::thread::spawn(move || {
             while let Ok(request) = request_rx.recv() {
                 let ThumbnailRequest { path, index } = request;
-                
+
                 // 加载缩略图
                 let texture = Self::load_thumbnail_internal(&path, &ctx);
-                
+
                 // 发送结果回主线程
                 let _ = result_tx.send(ThumbnailResult { index, texture });
-                
+
                 // 触发重绘以更新UI
                 ctx.request_repaint();
             }
@@ -55,33 +55,28 @@ impl ThumbnailLoader {
         }
     }
 
-    fn load_thumbnail_internal(
-        path: &PathBuf,
-        ctx: &egui::Context,
-    ) -> Option<egui::TextureHandle> {
+    fn load_thumbnail_internal(path: &PathBuf, ctx: &egui::Context) -> Option<egui::TextureHandle> {
         const THUMBNAIL_SIZE: u32 = 120;
-        
+
         // 首先尝试使用 image::open 加载
         let img_result = image::open(path);
-        
+
         let img = match img_result {
             Ok(img) => img,
             Err(e) => {
                 debug!("缩略图自动格式检测失败 {:?}: {}，尝试备用方法...", path, e);
-                
+
                 match std::fs::read(path) {
-                    Ok(data) => {
-                        match image::load_from_memory(&data) {
-                            Ok(img) => {
-                                info!("缩略图使用备用方法成功加载: {:?}", path);
-                                img
-                            }
-                            Err(e2) => {
-                                error!("缩略图备用解码也失败 {:?}: {}", path, e2);
-                                return None;
-                            }
+                    Ok(data) => match image::load_from_memory(&data) {
+                        Ok(img) => {
+                            info!("缩略图使用备用方法成功加载: {:?}", path);
+                            img
                         }
-                    }
+                        Err(e2) => {
+                            error!("缩略图备用解码也失败 {:?}: {}", path, e2);
+                            return None;
+                        }
+                    },
                     Err(io_err) => {
                         error!("无法读取缩略图文件 {:?}: {}", path, io_err);
                         return None;
@@ -89,26 +84,22 @@ impl ThumbnailLoader {
                 }
             }
         };
-        
+
         // 调整为缩略图大小
         let resized = img.resize(
             THUMBNAIL_SIZE,
             THUMBNAIL_SIZE,
             image::imageops::FilterType::Lanczos3,
         );
-        
+
         let rgba = resized.to_rgba8();
         let size = [rgba.width() as usize, rgba.height() as usize];
         let pixels = rgba.as_raw();
-        
+
         let color_image = egui::ColorImage::from_rgba_unmultiplied(size, pixels);
         let texture_name = format!("thumb_{}", path.file_name()?.to_string_lossy());
-        
-        Some(ctx.load_texture(
-            texture_name,
-            color_image,
-            egui::TextureOptions::LINEAR,
-        ))
+
+        Some(ctx.load_texture(texture_name, color_image, egui::TextureOptions::LINEAR))
     }
 
     /// 请求加载缩略图
@@ -157,7 +148,7 @@ impl Gallery {
     /// 使用给定配置创建新的图库
     pub fn new(config: GalleryConfig) -> Self {
         debug!("初始化图库，配置: {:?}", config);
-        
+
         Self {
             config,
             images: Vec::new(),
@@ -182,7 +173,7 @@ impl Gallery {
             thumbnail: None,
             is_loading: true,
         });
-        
+
         // 异步请求加载缩略图
         if let Some(ref loader) = self.thumbnail_loader {
             loader.request(index, path);
@@ -289,7 +280,7 @@ impl Gallery {
     /// 处理键盘输入，返回导航动作
     pub fn handle_keyboard(&mut self, ctx: &egui::Context) -> NavAction {
         let mut action = NavAction::None;
-        
+
         // 方向键导航
         if ctx.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
             if self.select_prev() {
@@ -308,14 +299,14 @@ impl Gallery {
                 action = NavAction::SelectAndOpen(self.selected_index.unwrap_or(0));
             }
         }
-        
+
         // Enter 键打开选中的图像
         if ctx.input(|i| i.key_pressed(egui::Key::Enter)) {
             if let Some(selected) = self.selected_index {
                 action = NavAction::SelectAndOpen(selected);
             }
         }
-        
+
         action
     }
 
@@ -329,10 +320,10 @@ impl Gallery {
     pub fn ui(&mut self, ui: &mut Ui) -> Option<usize> {
         // 处理异步加载结果
         self.process_async_results();
-        
+
         let available_width = ui.available_width();
         let mut clicked_index: Option<usize> = None;
-        
+
         // 基于配置计算每行项目数
         self.items_per_row = if self.config.items_per_row > 0 {
             self.config.items_per_row
@@ -343,7 +334,7 @@ impl Gallery {
         };
 
         let items_per_row = self.items_per_row;
-        
+
         egui::ScrollArea::vertical()
             .auto_shrink([false; 2])
             .show(ui, |ui| {
@@ -358,7 +349,7 @@ impl Gallery {
                     .show(ui, |ui| {
                         for index in 0..self.images.len() {
                             let response = self.render_thumbnail(ui, index);
-                            
+
                             if response.clicked() {
                                 self.selected_index = Some(index);
                                 clicked_index = Some(index);
@@ -372,14 +363,14 @@ impl Gallery {
                         }
                     });
             });
-        
+
         clicked_index
     }
 
     fn render_thumbnail(&mut self, ui: &mut Ui, index: usize) -> Response {
         let size = Vec2::splat(self.config.thumbnail_size as f32);
         let is_selected = self.selected_index == Some(index);
-        
+
         // 确保图像存在
         if index >= self.images.len() {
             return ui.allocate_exact_size(size, egui::Sense::click()).1;
@@ -392,7 +383,7 @@ impl Gallery {
 
             // 带悬停/选中状态的背景
             let bg_color = if is_selected {
-                Color32::from_rgb(52, 152, 219)  // 选中时的蓝色
+                Color32::from_rgb(52, 152, 219) // 选中时的蓝色
             } else if response.hovered() {
                 Color32::from_rgb(60, 60, 60)
             } else {
@@ -407,19 +398,19 @@ impl Gallery {
                 painter.rect_stroke(rect, 4.0, egui::Stroke::new(2.0, Color32::WHITE));
                 // 为选中项目添加微妙的阴影效果
                 painter.rect_stroke(
-                    rect.expand(2.0), 
-                    4.0, 
-                    egui::Stroke::new(1.0, Color32::from_rgba_premultiplied(52, 152, 219, 100))
+                    rect.expand(2.0),
+                    4.0,
+                    egui::Stroke::new(1.0, Color32::from_rgba_premultiplied(52, 152, 219, 100)),
                 );
             }
 
             // 缩略图或占位符/加载动画
             if let Some(ref texture) = self.images[index].thumbnail {
                 painter.image(
-                    texture.id(), 
-                    rect.shrink(4.0),  // 轻微内边距
-                    Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), 
-                    Color32::WHITE
+                    texture.id(),
+                    rect.shrink(4.0), // 轻微内边距
+                    Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                    Color32::WHITE,
                 );
             } else if self.images[index].is_loading {
                 // 加载动画 - 旋转的圆圈
@@ -427,15 +418,20 @@ impl Gallery {
                 let radius = rect.width().min(rect.height()) * 0.15;
                 let time = ui.ctx().input(|i| i.time);
                 let angle = (time * 2.0) as f32;
-                
+
                 // 绘制加载圆圈
                 for i in 0..8 {
                     let dot_angle = angle + i as f32 * std::f32::consts::PI / 4.0;
-                    let dot_pos = center + Vec2::new(dot_angle.cos() * radius, dot_angle.sin() * radius);
+                    let dot_pos =
+                        center + Vec2::new(dot_angle.cos() * radius, dot_angle.sin() * radius);
                     let alpha = ((i as f32 / 8.0) * 255.0) as u8;
-                    painter.circle_filled(dot_pos, 2.0, Color32::from_rgba_premultiplied(200, 200, 200, alpha));
+                    painter.circle_filled(
+                        dot_pos,
+                        2.0,
+                        Color32::from_rgba_premultiplied(200, 200, 200, alpha),
+                    );
                 }
-                
+
                 // 加载文字
                 painter.text(
                     center + Vec2::new(0.0, radius + 12.0),
@@ -451,11 +447,11 @@ impl Gallery {
                     .file_stem()
                     .and_then(|s| s.to_str())
                     .unwrap_or("未知");
-                
+
                 // 绘制文件图标占位符
                 let icon_rect = rect.shrink(rect.width() * 0.3);
                 painter.rect_stroke(icon_rect, 2.0, egui::Stroke::new(1.0, Color32::GRAY));
-                
+
                 painter.text(
                     rect.center(),
                     egui::Align2::CENTER_CENTER,
@@ -472,7 +468,7 @@ impl Gallery {
                     .file_name()
                     .and_then(|s| s.to_str())
                     .unwrap_or("未知");
-                
+
                 // 截断长文件名
                 let display_name = if filename.len() > 20 {
                     format!("{}...", &filename[..17])

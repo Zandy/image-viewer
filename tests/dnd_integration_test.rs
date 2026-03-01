@@ -6,21 +6,22 @@ use std::path::PathBuf;
 #[test]
 fn test_supported_image_formats() {
     let formats = vec![
-        "png", "jpg", "jpeg", "gif", "webp", "tiff", "tif", "bmp",
-        "PNG", "JPG", "JPEG", "GIF", "WEBP", "TIFF", "TIF", "BMP",
+        "png", "jpg", "jpeg", "gif", "webp", "tiff", "tif", "bmp", "PNG", "JPG", "JPEG", "GIF",
+        "WEBP", "TIFF", "TIF", "BMP",
     ];
-    
+
     for fmt in formats {
         let path = PathBuf::from(format!("/tmp/test.{}", fmt));
-        let ext = path.extension()
+        let ext = path
+            .extension()
             .and_then(|e| e.to_str())
             .map(|e| e.to_lowercase());
-        
+
         let is_image = matches!(
             ext.as_deref(),
             Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "tiff" | "tif" | "bmp")
         );
-        
+
         assert!(is_image, "格式 {} 应该被识别为图片", fmt);
     }
 }
@@ -29,21 +30,22 @@ fn test_supported_image_formats() {
 #[test]
 fn test_unsupported_formats() {
     let formats = vec![
-        "txt", "rs", "toml", "md", "pdf", "doc", "exe", "zip",
-        "mp4", "avi", "mp3", "svg", "json", "yaml", "html",
+        "txt", "rs", "toml", "md", "pdf", "doc", "exe", "zip", "mp4", "avi", "mp3", "svg", "json",
+        "yaml", "html",
     ];
-    
+
     for fmt in formats {
         let path = PathBuf::from(format!("/tmp/test.{}", fmt));
-        let ext = path.extension()
+        let ext = path
+            .extension()
             .and_then(|e| e.to_str())
             .map(|e| e.to_lowercase());
-        
+
         let is_image = matches!(
             ext.as_deref(),
             Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "tiff" | "tif" | "bmp")
         );
-        
+
         assert!(!is_image, "格式 {} 不应该被识别为图片", fmt);
     }
 }
@@ -59,18 +61,19 @@ fn test_image_file_path_variations() {
         "/home/user/图片/照片.bmp",
         "C:\\Users\\image.PNG",
     ];
-    
+
     for path_str in paths {
         let path = PathBuf::from(path_str);
-        let ext = path.extension()
+        let ext = path
+            .extension()
             .and_then(|e| e.to_str())
             .map(|e| e.to_lowercase());
-        
+
         let is_image = matches!(
             ext.as_deref(),
             Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "tiff" | "tif" | "bmp")
         );
-        
+
         assert!(is_image, "路径 {} 应该被识别为图片", path_str);
     }
 }
@@ -83,18 +86,19 @@ fn test_image_file_with_multiple_dots() {
         "archive.v2.backup.jpg",
         "file.name.with.dots.gif",
     ];
-    
+
     for path_str in paths {
         let path = PathBuf::from(path_str);
-        let ext = path.extension()
+        let ext = path
+            .extension()
             .and_then(|e| e.to_str())
             .map(|e| e.to_lowercase());
-        
+
         let is_image = matches!(
             ext.as_deref(),
             Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "tiff" | "tif" | "bmp")
         );
-        
+
         assert!(is_image, "路径 {} 应该被识别为图片", path_str);
     }
 }
@@ -102,25 +106,20 @@ fn test_image_file_with_multiple_dots() {
 /// 测试空扩展名和无扩展名文件
 #[test]
 fn test_no_extension_files() {
-    let paths = vec![
-        "Makefile",
-        "README",
-        "LICENSE",
-        "/etc/hosts",
-        "",
-    ];
-    
+    let paths = vec!["Makefile", "README", "LICENSE", "/etc/hosts", ""];
+
     for path_str in paths {
         let path = PathBuf::from(path_str);
-        let ext = path.extension()
+        let ext = path
+            .extension()
             .and_then(|e| e.to_str())
             .map(|e| e.to_lowercase());
-        
+
         let is_image = matches!(
             ext.as_deref(),
             Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "tiff" | "tif" | "bmp")
         );
-        
+
         assert!(!is_image, "路径 '{}' 不应该被识别为图片", path_str);
     }
 }
@@ -129,18 +128,19 @@ fn test_no_extension_files() {
 #[test]
 fn test_single_char_extension() {
     let paths = vec!["file.p", "file.j", "file.g"];
-    
+
     for path_str in paths {
         let path = PathBuf::from(path_str);
-        let ext = path.extension()
+        let ext = path
+            .extension()
             .and_then(|e| e.to_str())
             .map(|e| e.to_lowercase());
-        
+
         let is_image = matches!(
             ext.as_deref(),
             Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "tiff" | "tif" | "bmp")
         );
-        
+
         assert!(!is_image, "路径 {} 不应该被识别为图片", path_str);
     }
 }
@@ -149,18 +149,19 @@ fn test_single_char_extension() {
 #[test]
 fn test_numeric_extension() {
     let paths = vec!["file.123", "file.png.123", "file.001"];
-    
+
     for path_str in paths {
         let path = PathBuf::from(path_str);
-        let ext = path.extension()
+        let ext = path
+            .extension()
             .and_then(|e| e.to_str())
             .map(|e| e.to_lowercase());
-        
+
         let is_image = matches!(
             ext.as_deref(),
             Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "tiff" | "tif" | "bmp")
         );
-        
+
         assert!(!is_image, "路径 {} 不应该被识别为图片", path_str);
     }
 }

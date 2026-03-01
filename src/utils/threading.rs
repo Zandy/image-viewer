@@ -23,9 +23,8 @@ impl ThreadPoolManager {
     }
 
     /// Execute a task in the thread pool
-    pub fn spawn<F>(&self,
-        f: F,
-    ) where
+    pub fn spawn<F>(&self, f: F)
+    where
         F: FnOnce() + Send + 'static,
     {
         self.pool.spawn(f);
@@ -42,7 +41,7 @@ impl Default for ThreadPoolManager {
         let num_threads = std::thread::available_parallelism()
             .map(|n| n.get())
             .unwrap_or(4);
-        
+
         Self::new(num_threads)
     }
 }
@@ -68,14 +67,14 @@ mod tests {
     fn test_thread_pool_manager_spawn() {
         let manager = ThreadPoolManager::new(2);
         let counter = Arc::new(AtomicUsize::new(0));
-        
+
         let counter_clone = counter.clone();
         manager.spawn(move || {
             counter_clone.fetch_add(1, Ordering::SeqCst);
         });
-        
+
         std::thread::sleep(std::time::Duration::from_millis(50));
-        
+
         assert!(counter.load(Ordering::SeqCst) >= 1);
     }
 
@@ -83,16 +82,16 @@ mod tests {
     fn test_thread_pool_manager_multiple_spawns() {
         let manager = ThreadPoolManager::new(4);
         let counter = Arc::new(AtomicUsize::new(0));
-        
+
         for _ in 0..10 {
             let counter_clone = counter.clone();
             manager.spawn(move || {
                 counter_clone.fetch_add(1, Ordering::SeqCst);
             });
         }
-        
+
         std::thread::sleep(std::time::Duration::from_millis(100));
-        
+
         assert_eq!(counter.load(Ordering::SeqCst), 10);
     }
 

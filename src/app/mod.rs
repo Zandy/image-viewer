@@ -1,14 +1,15 @@
 //! Main application module
 
-use std::path::PathBuf;
-use eframe::Frame;
-use egui::Context;
-use tracing::debug;
 use crate::config::Config;
 use crate::decoder::ImageDecoder;
 use crate::gallery::{Gallery, NavAction};
+use crate::shortcuts_help::ShortcutsHelpPanel;
 use crate::utils::is_image_file;
 use crate::viewer::Viewer;
+use eframe::Frame;
+use egui::Context;
+use std::path::PathBuf;
+use tracing::debug;
 
 pub struct ImageViewerApp {
     config: Config,
@@ -18,6 +19,7 @@ pub struct ImageViewerApp {
     image_list: Vec<PathBuf>,
     current_index: usize,
     decoder: ImageDecoder,
+    shortcuts_help_panel: ShortcutsHelpPanel,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,7 +29,11 @@ enum View {
 }
 
 impl ImageViewerApp {
-    pub fn new(cc: &eframe::CreationContext<'_>, config: Config, initial_path: Option<PathBuf>) -> Self {
+    pub fn new(
+        cc: &eframe::CreationContext<'_>,
+        config: Config,
+        initial_path: Option<PathBuf>,
+    ) -> Self {
         Self::configure_styles(&cc.egui_ctx);
         let mut app = Self {
             gallery: Gallery::new(config.gallery.clone()),
@@ -37,6 +43,7 @@ impl ImageViewerApp {
             image_list: Vec::new(),
             current_index: 0,
             decoder: ImageDecoder::new(),
+            shortcuts_help_panel: ShortcutsHelpPanel::new(),
         };
         app.gallery.init_thumbnail_loader(&cc.egui_ctx);
         if let Some(path) = initial_path {
@@ -62,11 +69,15 @@ impl ImageViewerApp {
                 let size = [rgba.width() as usize, rgba.height() as usize];
                 let color_image = egui::ColorImage::from_rgba_unmultiplied(size, rgba.as_raw());
                 let texture = ctx.load_texture(
-                    path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+                    path.file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string(),
                     color_image,
                     egui::TextureOptions::default(),
                 );
-                self.viewer.set_image_with_texture(path.clone(), texture, size);
+                self.viewer
+                    .set_image_with_texture(path.clone(), texture, size);
                 self.current_view = View::Viewer;
                 if !self.image_list.contains(&path) {
                     self.image_list.push(path.clone());
@@ -150,21 +161,23 @@ impl eframe::App for ImageViewerApp {
         self.gallery.init_thumbnail_loader(ctx);
         self.handle_shortcuts(ctx);
         self.handle_gallery_navigation(ctx);
-        
-        egui::CentralPanel::default().show(ctx, |ui| {
-            match self.current_view {
-                View::Gallery => {
-                    if let Some(index) = self.gallery.ui(ui) {
-                        if let Some(path) = self.gallery.get_image_path(index) {
-                            self.open_image(path.to_path_buf());
-                        }
+        // 处理快捷键帮助面板输入
+        self.shortcuts_help_panel.handle_input(ctx);
+
+        egui::CentralPanel::default().show(ctx, |ui| match self.current_view {
+            View::Gallery => {
+                if let Some(index) = self.gallery.ui(ui) {
+                    if let Some(path) = self.gallery.get_image_path(index) {
+                        self.open_image(path.to_path_buf());
                     }
                 }
-                View::Viewer => {
-                    self.viewer.ui(ui);
-                }
+            }
+            View::Viewer => {
+                self.viewer.ui(ui);
             }
         });
+        // 渲染快捷键帮助面板
+        self.shortcuts_help_panel.ui(ctx);
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {

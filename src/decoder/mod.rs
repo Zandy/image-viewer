@@ -29,9 +29,7 @@ impl ImageDecoder {
 
     /// 从文件路径解码图像
     #[instrument(skip(self, path))]
-    pub fn decode_from_file(&self,
-        path: &Path,
-    ) -> Result<DynamicImage, DecoderError> {
+    pub fn decode_from_file(&self, path: &Path) -> Result<DynamicImage, DecoderError> {
         debug!("从 {:?} 解码图像", path);
 
         // Try to detect format from file content first (more reliable)
@@ -49,28 +47,28 @@ impl ImageDecoder {
             }
             Err(e) => {
                 error!("自动格式检测失败: {}", e);
-                
+
                 // Fallback: read raw bytes and try to guess format from content
                 debug!("尝试备用解码方法...");
                 match std::fs::read(path) {
-                    Ok(data) => {
-                        match image::load_from_memory(&data) {
-                            Ok(img) => {
-                                info!("使用备用方法成功解码图像");
-                                Ok(img)
-                            }
-                            Err(e2) => {
-                                error!("备用解码也失败: {}", e2);
-                                Err(DecoderError::DecodeFailed(format!(
-                                    "主解码: {} | 备用解码: {}", e, e2
-                                )))
-                            }
+                    Ok(data) => match image::load_from_memory(&data) {
+                        Ok(img) => {
+                            info!("使用备用方法成功解码图像");
+                            Ok(img)
                         }
-                    }
+                        Err(e2) => {
+                            error!("备用解码也失败: {}", e2);
+                            Err(DecoderError::DecodeFailed(format!(
+                                "主解码: {} | 备用解码: {}",
+                                e, e2
+                            )))
+                        }
+                    },
                     Err(io_err) => {
                         error!("无法读取文件: {}", io_err);
                         Err(DecoderError::DecodeFailed(format!(
-                            "解码失败: {} | 文件读取失败: {}", e, io_err
+                            "解码失败: {} | 文件读取失败: {}",
+                            e, io_err
                         )))
                     }
                 }
@@ -80,10 +78,7 @@ impl ImageDecoder {
 
     /// 从内存解码图像
     #[instrument(skip(self, data))]
-    pub fn decode_from_memory(
-        &self,
-        data: &[u8],
-    ) -> Result<DynamicImage, DecoderError> {
+    pub fn decode_from_memory(&self, data: &[u8]) -> Result<DynamicImage, DecoderError> {
         debug!("从内存解码图像, 大小: {} 字节", data.len());
 
         let img = image::load_from_memory(data).map_err(|e| {
@@ -95,9 +90,7 @@ impl ImageDecoder {
     }
 
     /// 从文件扩展名检测图像格式
-    fn detect_format(&self,
-        path: &Path,
-    ) -> Result<ImageFormat, DecoderError> {
+    fn detect_format(&self, path: &Path) -> Result<ImageFormat, DecoderError> {
         let ext = path
             .extension()
             .and_then(|e| e.to_str())

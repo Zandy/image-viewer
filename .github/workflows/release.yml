@@ -153,9 +153,17 @@ jobs:
         mkdir -p dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}
         cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
         cp README.md LICENSE dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
-        # Copy install scripts
-        if [ -d "install" ]; then
-          cp -r install dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
+        # Copy platform-specific install scripts only (Windows)
+        if [ "${{ matrix.name }}" = "linux-x86_64" ] || [ "${{ matrix.name }}" = "linux-aarch64" ]; then
+          if [ -d "install/linux" ]; then
+            mkdir -p dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/install
+            cp -r install/linux dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/install/
+          fi
+        elif [ "${{ matrix.name }}" = "macos-x86_64" ] || [ "${{ matrix.name }}" = "macos-aarch64" ]; then
+          if [ -d "install/macos" ]; then
+            mkdir -p dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/install
+            cp -r install/macos dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/install/
+          fi
         fi
         cd dist
         ${{ matrix.archive_cmd }} ../image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.${{ matrix.archive_ext }} image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
@@ -168,9 +176,9 @@ jobs:
         Copy-Item "target\${{ matrix.target }}\release\${{ matrix.binary_name }}" "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
         Copy-Item "README.md" "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
         Copy-Item "LICENSE" "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
-        # Copy install scripts
-        if (Test-Path "install") {
-          Copy-Item -Recurse -Path "install" -Destination "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
+        # Copy platform-specific install scripts only (Windows)
+        if (Test-Path "install\windows") {
+          Copy-Item -Recurse -Path "install\windows" -Destination "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
         }
         cd dist
         ${{ matrix.archive_cmd }} ..\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.${{ matrix.archive_ext }} image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\

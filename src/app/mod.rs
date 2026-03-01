@@ -202,6 +202,45 @@ impl ImageViewerApp {
         ctx.input(|i| i.viewport().fullscreen.unwrap_or(false))
     }
 
+        /// Hover 菜单按钮 - 鼠标悬停时自动打开菜单
+    fn hover_menu_button(
+        ui: &mut egui::Ui,
+        title: &str,
+        add_contents: impl FnOnce(&mut egui::Ui),
+    ) {
+        use egui::Id;
+        
+        let menu_id = Id::new(format!("menu_{}", title));
+        let button_response = ui.button(title);
+        
+        // 检查是否有其他菜单打开
+        let any_menu_open = ui.data(|d| {
+            d.get_temp::<bool>(Id::new("menu_open")).unwrap_or(false)
+        });
+        
+        // 如果按钮被悬停且有其他菜单打开，打开当前菜单
+        if button_response.hovered() && any_menu_open {
+            ui.data_mut(|d| d.insert_temp(menu_id, true));
+        }
+        
+        // 使用标准 menu_button，但先检查是否应该强制打开
+        let should_open = ui.data(|d| d.get_temp::<bool>(menu_id).unwrap_or(false));
+        
+        if should_open || button_response.clicked() {
+            ui.data_mut(|d| d.insert_temp(Id::new("menu_open"), true));
+            
+            egui::menu::menu_button(ui, title, |ui| {
+                add_contents(ui);
+                // 如果鼠标离开菜单区域，关闭
+                if !ui.rect_contains_pointer(ui.max_rect()) && ui.input(|i| i.pointer.any_click()) {
+                    ui.data_mut(|d| d.insert_temp(menu_id, false));
+                }
+            });
+        } else {
+            egui::menu::menu_button(ui, title, add_contents);
+        }
+    }
+
     fn handle_shortcuts(&mut self, ctx: &Context) {
         // ? 键 - 快捷键帮助面板
         ctx.input(|i| {
@@ -444,7 +483,7 @@ impl eframe::App for ImageViewerApp {
         if !self.is_fullscreen(ctx) {
             egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
                 egui::menu::bar(ui, |ui| {
-                    ui.menu_button("文件", |ui| {
+                    Self::hover_menu_button(ui, "文件", |ui| {
                         if ui.button("打开... (Ctrl+O)").clicked() {
                             self.show_open_dialog();
                             ui.close_menu();
@@ -454,7 +493,7 @@ impl eframe::App for ImageViewerApp {
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                         }
                     });
-                    ui.menu_button("视图", |ui| {
+                    Self::hover_menu_button(ui, "视图", |ui| {
                         if ui.button("图库").clicked() {
                             self.current_view = View::Gallery;
                             ui.close_menu();
@@ -469,7 +508,7 @@ impl eframe::App for ImageViewerApp {
                             ui.close_menu();
                         }
                     });
-                    ui.menu_button("图片", |ui| {
+                    Self::hover_menu_button(ui, "图片", |ui| {
                         if ui.button("上一张 (左箭头)").clicked() {
                             self.prev_image();
                             ui.close_menu();
@@ -492,7 +531,7 @@ impl eframe::App for ImageViewerApp {
                             ui.close_menu();
                         }
                     });
-                    ui.menu_button("帮助", |ui| {
+                    Self::hover_menu_button(ui, "帮助", |ui| {
                         if ui.button("关于").clicked() {
                             self.show_about_window = true;
                             ui.close_menu();

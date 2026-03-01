@@ -14,7 +14,7 @@ set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 set "EXE_PATH="
 
 if exist "%SCRIPT_DIR%\..\..\image-viewer.exe" (
-    for %%F in ("%SCRIPT_DIR%\..\..") do set "EXE_PATH=%%~fF\image-viewer.exe"
+    set "EXE_PATH=%SCRIPT_DIR%\..\..\image-viewer.exe"
     goto :found
 )
 
@@ -35,11 +35,26 @@ exit /b 1
 :found
 echo Found: %EXE_PATH%
 echo.
+
 echo Registering...
 
-set "PSCMD=powershell -NoProfile -ExecutionPolicy Bypass -Command \"& {$exe='%EXE_PATH%'; 'png','jpg','jpeg','gif','webp','tiff','tif','bmp','ico','heic','heif','avif' | ForEach-Object { $p='HKCU:\Software\Classes\.'+$_+'\shell\OpenWithImageViewer'; New-Item -Path $p -Force | Out-Null; Set-ItemProperty -Path $p -Name '(Default)' -Value 'Open with Image-Viewer'; Set-ItemProperty -Path $p -Name 'Icon' -Value $exe; $c=$p+'\command'; New-Item -Path $c -Force | Out-Null; Set-ItemProperty -Path $c -Name '(Default)' -Value \"`"$exe`\" \"%%1\"\"; }; Write-Host 'Done.'}\"
+:: Write PowerShell script using .NET registry methods
+echo $exe = "%EXE_PATH%" > "%TEMP%\register_image_viewer.ps1"
+echo $exts = "png","jpg","jpeg","gif","webp","tiff","tif","bmp","ico","heic","heif","avif" >> "%TEMP%\register_image_viewer.ps1"
+echo foreach ($ext in $exts) { >> "%TEMP%\register_image_viewer.ps1"
+echo     $path = "Software\Classes\SystemFileAssociations\." + $ext + "\shell\OpenWithImageViewer" >> "%TEMP%\register_image_viewer.ps1"
+echo     $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($path) >> "%TEMP%\register_image_viewer.ps1"
+echo     $key.SetValue("", "Open with Image-Viewer") >> "%TEMP%\register_image_viewer.ps1"
+echo     $key.SetValue("Icon", $exe) >> "%TEMP%\register_image_viewer.ps1"
+echo     $cmdKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($path + "\command") >> "%TEMP%\register_image_viewer.ps1"
+echo     $cmdKey.SetValue("", ('"' + $exe + '" "%1"')) >> "%TEMP%\register_image_viewer.ps1"
+echo     $cmdKey.Close() >> "%TEMP%\register_image_viewer.ps1"
+echo     $key.Close() >> "%TEMP%\register_image_viewer.ps1"
+echo } >> "%TEMP%\register_image_viewer.ps1"
+echo Write-Host "Done." >> "%TEMP%\register_image_viewer.ps1"
 
-%PSCMD%
+powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\register_image_viewer.ps1"
+del "%TEMP%\register_image_viewer.ps1"
 
 if %errorlevel% neq 0 (
     echo [ERROR] Registration failed.

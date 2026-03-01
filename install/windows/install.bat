@@ -13,56 +13,73 @@ echo.
 :: Detect Windows version
 for /f "tokens=4-5 delims=. " %%i in ('ver') do set WIN_VER=%%i
 
-:: Set installation directory
-:: Check if running from green/portable version (exe in parent dir)
+:: Get script directory
 set "SCRIPT_DIR=%~dp0"
 set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 
-if exist "%SCRIPT_DIR%\..\..\..\image-viewer.exe" (
-    :: Green/portable version - use current location
-    for %%F in ("%SCRIPT_DIR%\..\..\..") do set "INSTALL_DIR=%%~fF"
-    set "INSTALL_DIR=%INSTALL_DIR:~0,-1%"
-    set "PORTABLE_MODE=1"
-    echo [Portable Mode] Detected green version
-echo Installation directory: %INSTALL_DIR%
-) else (
-    :: Standard installation - use LocalAppData
-    set "INSTALL_DIR=%LOCALAPPDATA%\Image-Viewer"
-    set "PORTABLE_MODE=0"
-    echo [Standard Mode] Installing to LocalAppData
-echo Installation directory: %INSTALL_DIR%
-    
-    :: Create installation directory
-    if not exist "%INSTALL_DIR%" (
-        echo Creating installation directory...
-        mkdir "%INSTALL_DIR%"
-    )
-    
-    :: Copy executable
-    if exist "%~dp0\..\..\target\release\image-viewer.exe" (
-        echo Copying image-viewer.exe...
-        copy /Y "%~dp0\..\..\target\release\image-viewer.exe" "%INSTALL_DIR%\" >nul
-    ) else if exist "%~dp0\image-viewer.exe" (
-        echo Copying image-viewer.exe...
-        copy /Y "%~dp0\image-viewer.exe" "%INSTALL_DIR%\" >nul
-    ) else (
-        echo Warning: image-viewer.exe not found.
-        echo Please build the project first with: cargo build --release
-        pause
-        exit /b 1
-    )
+:: Try to find image-viewer.exe in various locations
+set "EXE_FOUND=0"
+set "EXE_PATH="
+
+:: Check 1: Same directory as script
+if exist "%SCRIPT_DIR%\image-viewer.exe" (
+    set "EXE_PATH=%SCRIPT_DIR%\image-viewer.exe"
+    set "EXE_FOUND=1"
+    goto :found_exe
 )
 
-set "EXE_PATH=%INSTALL_DIR%\image-viewer.exe"
+:: Check 2: Parent directory (for install/windows/ structure)
+if exist "%SCRIPT_DIR%\..\..\image-viewer.exe" (
+    for %%F in ("%SCRIPT_DIR%\..\..") do set "INSTALL_DIR=%%~fF"
+    set "EXE_PATH=%INSTALL_DIR%\image-viewer.exe"
+    set "EXE_FOUND=1"
+    goto :found_exe
+)
 
-:: Verify executable exists
-if not exist "%EXE_PATH%" (
-    echo Error: image-viewer.exe not found at %EXE_PATH%
+:: Check 3: Three levels up (for green version structure)
+if exist "%SCRIPT_DIR%\..\..\..\image-viewer.exe" (
+    for %%F in ("%SCRIPT_DIR%\..\..\..") do set "INSTALL_DIR=%%~fF"
+    set "EXE_PATH=%INSTALL_DIR%\image-viewer.exe"
+    set "EXE_FOUND=1"
+    goto :found_exe
+)
+
+:: Check 4: Standard LocalAppData location
+if exist "%LOCALAPPDATA%\Image-Viewer\image-viewer.exe" (
+    set "INSTALL_DIR=%LOCALAPPDATA%\Image-Viewer"
+    set "EXE_PATH=%INSTALL_DIR%\image-viewer.exe"
+    set "EXE_FOUND=1"
+    goto :found_exe
+)
+
+:: Check 5: Source build location
+if exist "%SCRIPT_DIR%\..\..\target\release\image-viewer.exe" (
+    for %%F in ("%SCRIPT_DIR%\..\..\target\release") do set "INSTALL_DIR=%%~fF"
+    set "EXE_PATH=%INSTALL_DIR%\image-viewer.exe"
+    set "EXE_FOUND=1"
+    goto :found_exe
+)
+
+:: Not found in any location
+if %EXE_FOUND%==0 (
+    echo [ERROR] image-viewer.exe not found!
+    echo.
+    echo Searched locations:
+    echo   - %SCRIPT_DIR%\image-viewer.exe
+    echo   - %SCRIPT_DIR%\..\..\image-viewer.exe
+    echo   - %SCRIPT_DIR%\..\..\..\image-viewer.exe
+    echo   - %LOCALAPPDATA%\Image-Viewer\image-viewer.exe
+    echo   - %SCRIPT_DIR%\..\..\target\release\image-viewer.exe
+    echo.
+    echo Please ensure image-viewer.exe exists in one of these locations.
+    echo.
     pause
     exit /b 1
 )
 
-echo.
+:found_exe
+echo [Portable Mode] Detected green version
+echo Installation directory: %INSTALL_DIR%
 echo Executable: %EXE_PATH%
 echo.
 
@@ -95,11 +112,14 @@ for %%E in (png jpg jpeg gif webp tiff tif bmp ico heic heif avif) do (
 )
 
 :: Import registry
+echo Importing registry entries...
 regedit /s "%TEMP_REG%"
 
 if %errorlevel% neq 0 (
     echo.
-    echo Error: Failed to register context menu.
+    echo [ERROR] Failed to import registry!
+    echo Please ensure you have write access to HKEY_CURRENT_USER.
+    echo (Administrator privileges are NOT required)
     echo.
     del "%TEMP_REG%"
     pause
@@ -114,14 +134,7 @@ echo =========================================
 echo Installation completed successfully!
 echo =========================================
 echo.
-echo Image-Viewer installed to: %INSTALL_DIR%
-echo.
-if "%PORTABLE_MODE%"=="1" (
-    echo [Portable Mode] No files were moved.
-    echo The executable remains in its current location.
-) else (
-    echo [Standard Mode] Files installed to LocalAppData.
-)
+echo Image-Viewer path: %EXE_PATH%
 echo.
 echo You can now right-click on image files to open with Image-Viewer.
 echo.

@@ -4,18 +4,34 @@
 //! - 窗口状态（大小、位置、最大化）
 //! - 图库设置（缩略图大小、网格布局）
 //! - 查看器设置（背景颜色、缩放行为、信息面板）
+//! - 应用状态（上次打开的目录）
 //!
 //! 配置存储在平台特定目录：
 //! - Linux: ~/.config/image-viewer/config.toml
 //! - macOS: ~/Library/Application Support/com.imageviewer.image-viewer/config.toml
 //! - Windows: %APPDATA%\image-viewer\config.toml
+//!
+//! # 最佳实践
+//!
+//! 1. **原子写入**: 配置通过临时文件写入，然后原子重命名，防止写入中断导致配置损坏
+//! 2. **防抖保存**: 配置变更后延迟保存，避免频繁磁盘写入
+//! 3. **配置验证**: 加载时自动验证并修正无效值
+//! 4. **优雅降级**: 配置损坏时自动备份并使用默认值
 
 use std::path::PathBuf;
+use std::sync::mpsc;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
+
+/// 防抖保存延迟（毫秒）
+const DEBOUNCE_MS: u64 = 500;
+/// 最小保存间隔（毫秒），防止过于频繁的保存
+const MIN_SAVE_INTERVAL_MS: u64 = 100;
 
 /// 应用程序配置根
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -26,6 +42,8 @@ pub struct Config {
     pub gallery: GalleryConfig,
     /// 查看器设置
     pub viewer: ViewerConfig,
+    /// 应用状态
+    pub app: AppStateConfig,
 }
 
 /// 窗口配置
@@ -75,12 +93,24 @@ pub struct ViewerConfig {
     pub smooth_scroll: bool,
 }
 
+/// 应用状态配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AppStateConfig {
+    /// 上次打开的目录路径
+    pub last_opened_directory: Option<PathBuf>,
+    /// 默认缩放比例（预留）
+    pub default_zoom_scale: Option<f32>,
+    /// 主题设置（预留）："dark" | "light" | "system"
+    pub theme: Option<String>,
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
             window: WindowConfig::default(),
             gallery: GalleryConfig::default(),
             viewer: ViewerConfig::default(),
+            app: AppStateConfig::default(),
         }
     }
 }
@@ -119,6 +149,124 @@ impl Default for ViewerConfig {
             zoom_step: 1.25,
             smooth_scroll: true,
         }
+    }
+}
+
+impl Default for AppStateConfig {
+    fn default() -> Self {
+        Self {
+            last_opened_directory: None,
+            default_zoom_scale: None,
+            theme: None,
+        }
+    }
+}
+
+/// 防抖配置保存器
+///
+/// 使用 mpsc 通道实现防抖保存，确保配置变更不会导致频繁的磁盘写入
+pub struct DebouncedConfigSaver {
+    sender: mpsc::Sender<ConfigMessage>,
+    _thread_handle: thread::JoinHandle<()>,
+}
+
+enum ConfigMessage {
+    Save(Config),
+    Shutdown,
+}
+
+impl DebouncedConfigSaver {
+    /// 创建新的防抖配置保存器
+    pub fn new() -> Self {
+        let (sender, receiver) = mpsc::channel::<ConfigMessage>();
+
+        let handle = thread::spawn(move || {
+            let mut last_save = Instant::now();
+            let mut pending_config: Option<Config> = None;
+
+            loop {
+                // 等待消息，使用超时来实现防抖
+                let timeout = Duration::from_millis(DEBOUNCE_MS);
+                let result = receiver.recv_timeout(timeout);
+
+                match result {
+                    Ok(ConfigMessage::Save(config)) => {
+                        pending_config = Some(config);
+                    }
+                    Ok(ConfigMessage::Shutdown) => {
+                        // 关闭前保存待处理的配置
+                        if let Some(config) = pending_config {
+                            if let Err(e) = config.save() {
+                                error!("关闭时保存配置失败: {}", e);
+                            }
+                        }
+                        break;
+                    }
+                    Err(mpsc::RecvTimeoutError::Timeout) => {
+                        // 防抖超时，执行保存
+                        if let Some(config) = pending_config.take() {
+                            // 确保最小保存间隔
+                            let elapsed = last_save.elapsed();
+                            if elapsed < Duration::from_millis(MIN_SAVE_INTERVAL_MS) {
+                                thread::sleep(
+                                    Duration::from_millis(MIN_SAVE_INTERVAL_MS) - elapsed,
+                                );
+                            }
+
+                            if let Err(e) = config.save() {
+                                error!("防抖保存配置失败: {}", e);
+                            } else {
+                                last_save = Instant::now();
+                                debug!("配置已防抖保存");
+                            }
+                        }
+                    }
+                    Err(mpsc::RecvTimeoutError::Disconnected) => {
+                        // 通道断开，保存任何待处理的配置然后退出
+                        if let Some(config) = pending_config {
+                            let _ = config.save();
+                        }
+                        break;
+                    }
+                }
+            }
+        });
+
+        Self {
+            sender,
+            _thread_handle: handle,
+        }
+    }
+
+    /// 请求保存配置（防抖）
+    pub fn request_save(&self, config: &Config) {
+        if let Err(e) = self.sender.send(ConfigMessage::Save(config.clone())) {
+            error!("发送保存配置请求失败: {}", e);
+            // 同步回退
+            if let Err(e) = config.save() {
+                error!("同步保存配置失败: {}", e);
+            }
+        }
+    }
+
+    /// 立即保存配置（不防抖）
+    pub fn save_now(&self, config: &Config) {
+        // 直接保存，不经过防抖
+        if let Err(e) = config.save() {
+            error!("立即保存配置失败: {}", e);
+        }
+    }
+}
+
+impl Default for DebouncedConfigSaver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Drop for DebouncedConfigSaver {
+    fn drop(&mut self) {
+        let _ = self.sender.send(ConfigMessage::Shutdown);
     }
 }
 
@@ -186,7 +334,12 @@ impl Config {
 
     /// 保存配置到平台特定的配置目录。
     ///
-    /// 如果父目录不存在，自动创建。
+    /// 使用原子写入策略：
+    /// 1. 将配置序列化为 TOML
+    /// 2. 写入临时文件
+    /// 3. 原子重命名为目标文件
+    ///
+    /// 这确保即使在写入过程中发生崩溃，也不会留下损坏的配置文件。
     ///
     /// # Returns
     /// - `Ok(())` - 配置保存成功
@@ -194,17 +347,27 @@ impl Config {
     pub fn save(&self) -> Result<()> {
         let config_path = Self::config_path()?;
 
+        // 确保父目录存在
         if let Some(parent) = config_path.parent() {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("无法创建配置目录: {:?}", parent))?;
         }
 
+        // 序列化配置
         let content = toml::to_string_pretty(self).with_context(|| "序列化配置到TOML失败")?;
 
-        std::fs::write(&config_path, content)
-            .with_context(|| format!("无法写入配置到 {:?}", config_path))?;
+        // 原子写入：先写临时文件，然后重命名
+        let temp_path = config_path.with_extension("toml.tmp");
 
-        debug!("配置已保存到 {:?}", config_path);
+        // 写入临时文件
+        std::fs::write(&temp_path, content)
+            .with_context(|| format!("无法写入临时配置到 {:?}", temp_path))?;
+
+        // 原子重命名（确保配置文件永远不会处于部分写入状态）
+        std::fs::rename(&temp_path, &config_path)
+            .with_context(|| format!("无法重命名临时配置 {:?} 到 {:?}", temp_path, config_path))?;
+
+        debug!("配置已原子保存到 {:?}", config_path);
         Ok(())
     }
 
@@ -251,6 +414,7 @@ impl Config {
             window: self.window.validate(),
             gallery: self.gallery.validate(),
             viewer: self.viewer.validate(),
+            app: self.app.validate(),
         }
     }
 
@@ -271,6 +435,16 @@ impl Config {
             self.window.x = Some(x);
             self.window.y = Some(y);
         }
+    }
+
+    /// 更新上次打开的目录
+    pub fn set_last_opened_directory(&mut self, path: impl Into<PathBuf>) {
+        self.app.last_opened_directory = Some(path.into());
+    }
+
+    /// 获取上次打开的目录
+    pub fn last_opened_directory(&self) -> Option<&PathBuf> {
+        self.app.last_opened_directory.as_ref()
     }
 }
 
@@ -338,6 +512,41 @@ impl ViewerConfig {
     }
 }
 
+impl AppStateConfig {
+    /// 验证应用状态配置。
+    fn validate(&self) -> Self {
+        // 验证 default_zoom_scale 范围
+        let default_zoom_scale = self
+            .default_zoom_scale
+            .map(|scale| {
+                if scale < 0.01 {
+                    None
+                } else if scale > 20.0 {
+                    Some(20.0)
+                } else {
+                    Some(scale)
+                }
+            })
+            .flatten();
+
+        // 验证 theme 值
+        let theme = self.theme.as_ref().and_then(|t| {
+            let t = t.to_lowercase();
+            if ["dark", "light", "system"].contains(&t.as_str()) {
+                Some(t)
+            } else {
+                None
+            }
+        });
+
+        Self {
+            last_opened_directory: self.last_opened_directory.clone(),
+            default_zoom_scale,
+            theme,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -372,6 +581,11 @@ mod tests {
         assert_eq!(config.viewer.max_scale, 20.0);
         assert_eq!(config.viewer.zoom_step, 1.25);
         assert!(config.viewer.smooth_scroll);
+
+        // 应用状态默认值
+        assert!(config.app.last_opened_directory.is_none());
+        assert!(config.app.default_zoom_scale.is_none());
+        assert!(config.app.theme.is_none());
     }
 
     // =========================================================================
@@ -380,18 +594,21 @@ mod tests {
 
     #[test]
     fn test_toml_serialization() {
-        let config = Config::default();
+        let mut config = Config::default();
+        config.set_last_opened_directory("/test/path");
         let toml_str = toml::to_string_pretty(&config).expect("序列化失败");
 
         // 验证TOML包含预期部分
         assert!(toml_str.contains("[window]"));
         assert!(toml_str.contains("[gallery]"));
         assert!(toml_str.contains("[viewer]"));
+        assert!(toml_str.contains("[app]"));
 
         // 验证一些值存在
         assert!(toml_str.contains("width = 1200"));
         assert!(toml_str.contains("thumbnail_size = 120"));
         assert!(toml_str.contains("background_color"));
+        assert!(toml_str.contains("last_opened_directory"));
     }
 
     #[test]
@@ -418,6 +635,11 @@ min_scale = 0.05
 max_scale = 50.0
 zoom_step = 1.5
 smooth_scroll = false
+
+[app]
+last_opened_directory = "/home/user/pictures"
+default_zoom_scale = 1.5
+theme = "dark"
 "#;
 
         let config: Config = toml::from_str(toml_str).expect("反序列化失败");
@@ -440,6 +662,13 @@ smooth_scroll = false
         assert_eq!(config.viewer.max_scale, 50.0);
         assert_eq!(config.viewer.zoom_step, 1.5);
         assert!(!config.viewer.smooth_scroll);
+
+        assert_eq!(
+            config.app.last_opened_directory,
+            Some(PathBuf::from("/home/user/pictures"))
+        );
+        assert_eq!(config.app.default_zoom_scale, Some(1.5));
+        assert_eq!(config.app.theme, Some("dark".to_string()));
     }
 
     #[test]
@@ -466,6 +695,11 @@ smooth_scroll = false
                 max_scale: 10.0,
                 zoom_step: 1.1,
                 smooth_scroll: false,
+            },
+            app: AppStateConfig {
+                last_opened_directory: Some(PathBuf::from("/test/path")),
+                default_zoom_scale: Some(1.2),
+                theme: Some("light".to_string()),
             },
         };
 
@@ -516,6 +750,9 @@ min_scale = 0.1
 max_scale = 10.0
 zoom_step = 1.25
 smooth_scroll = true
+
+[app]
+last_opened_directory = "/home/user/photos"
 "#;
 
         let config: Config = toml::from_str(complete_toml).expect("应能解析完整配置");
@@ -528,6 +765,10 @@ smooth_scroll = true
         // 检查其他部分
         assert_eq!(config.gallery.thumbnail_size, 150);
         assert_eq!(config.viewer.min_scale, 0.1);
+        assert_eq!(
+            config.app.last_opened_directory,
+            Some(PathBuf::from("/home/user/photos"))
+        );
     }
 
     #[test]
@@ -638,6 +879,53 @@ width = 100
     }
 
     #[test]
+    fn test_app_state_validation() {
+        // 测试无效的 default_zoom_scale
+        let config = Config {
+            app: AppStateConfig {
+                default_zoom_scale: Some(50.0), // 超出范围
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let validated = config.validate();
+        assert_eq!(validated.app.default_zoom_scale, Some(20.0));
+
+        // 测试负的 default_zoom_scale
+        let config = Config {
+            app: AppStateConfig {
+                default_zoom_scale: Some(-0.5),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let validated = config.validate();
+        assert_eq!(validated.app.default_zoom_scale, None);
+
+        // 测试无效的 theme
+        let config = Config {
+            app: AppStateConfig {
+                theme: Some("invalid_theme".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let validated = config.validate();
+        assert_eq!(validated.app.theme, None);
+
+        // 测试有效的 theme（大小写不敏感）
+        let config = Config {
+            app: AppStateConfig {
+                theme: Some("DARK".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let validated = config.validate();
+        assert_eq!(validated.app.theme, Some("dark".to_string()));
+    }
+
+    #[test]
     fn test_negative_scale_handling() {
         let config = Config {
             viewer: ViewerConfig {
@@ -686,6 +974,11 @@ width = 100
                 zoom_step: 1.2,
                 smooth_scroll: true,
             },
+            app: AppStateConfig {
+                last_opened_directory: Some(PathBuf::from("/test/dir")),
+                default_zoom_scale: Some(1.0),
+                theme: Some("system".to_string()),
+            },
         };
 
         // Write directly to test file
@@ -713,6 +1006,29 @@ width = 100
         std::fs::write(&config_path, content).unwrap();
 
         assert!(config_path.exists());
+    }
+
+    #[test]
+    fn test_atomic_write() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("atomic_test.toml");
+
+        // 模拟原子写入
+        let config = Config::default();
+        let content = toml::to_string_pretty(&config).unwrap();
+        let temp_path = config_path.with_extension("toml.tmp");
+
+        // 写入临时文件
+        std::fs::write(&temp_path, content).unwrap();
+        // 原子重命名
+        std::fs::rename(&temp_path, &config_path).unwrap();
+
+        assert!(config_path.exists());
+        assert!(!temp_path.exists());
+
+        // 验证内容
+        let loaded = std::fs::read_to_string(&config_path).unwrap();
+        assert!(loaded.contains("[window]"));
     }
 
     // =========================================================================
@@ -781,6 +1097,93 @@ width = 100
     }
 
     // =========================================================================
+    // 应用状态测试
+    // =========================================================================
+
+    #[test]
+    fn test_set_last_opened_directory() {
+        let mut config = Config::default();
+
+        config.set_last_opened_directory("/home/user/pictures");
+
+        assert_eq!(
+            config.app.last_opened_directory,
+            Some(PathBuf::from("/home/user/pictures"))
+        );
+        assert_eq!(
+            config.last_opened_directory(),
+            Some(&PathBuf::from("/home/user/pictures"))
+        );
+    }
+
+    #[test]
+    fn test_last_opened_directory_none() {
+        let config = Config::default();
+        assert!(config.last_opened_directory().is_none());
+    }
+
+    #[test]
+    fn test_path_buf_conversion() {
+        let mut config = Config::default();
+        let path = PathBuf::from("/test/path");
+
+        config.set_last_opened_directory(path.clone());
+
+        assert_eq!(config.app.last_opened_directory, Some(path));
+    }
+
+    // =========================================================================
+    // 防抖保存测试
+    // =========================================================================
+
+    #[test]
+    fn test_debounced_saver_creation() {
+        let saver = DebouncedConfigSaver::new();
+        // 应该成功创建
+        drop(saver);
+    }
+
+    #[test]
+    fn test_debounced_save_request() {
+        let saver = DebouncedConfigSaver::new();
+        let config = Config::default();
+
+        // 请求保存（不会panic）
+        saver.request_save(&config);
+
+        // 给一点时间让后台线程处理
+        thread::sleep(Duration::from_millis(100));
+        drop(saver);
+    }
+
+    #[test]
+    fn test_save_now() {
+        let saver = DebouncedConfigSaver::new();
+        let config = Config::default();
+
+        // 立即保存（不会panic）
+        saver.save_now(&config);
+
+        drop(saver);
+    }
+
+    #[test]
+    fn test_multiple_save_requests() {
+        let saver = DebouncedConfigSaver::new();
+        let mut config = Config::default();
+
+        // 多次快速请求保存
+        for i in 0..10 {
+            config.window.width = 1000.0 + i as f32 * 10.0;
+            saver.request_save(&config);
+        }
+
+        // 给一点时间让后台线程处理
+        thread::sleep(Duration::from_millis(DEBOUNCE_MS + 100));
+        drop(saver);
+    }
+
+    // =========================================================================
     // 边界情况测试
     // =========================================================================
 
@@ -818,6 +1221,9 @@ min_scale = 0.1
 max_scale = 10.0
 zoom_step = 1.25
 smooth_scroll = true
+
+[app]
+last_opened_directory = "/test"
 "#;
 
         let config: Config = toml::from_str(toml_str).expect("应能解析");
@@ -854,6 +1260,9 @@ min_scale = 0.1
 max_scale = 10.0
 zoom_step = 1.25
 smooth_scroll = true
+
+[app]
+last_opened_directory = "/test"
 "#;
 
         let config: Config = toml::from_str(toml_str).expect("应能处理注释");
@@ -885,6 +1294,11 @@ min_scale = 0.05
 max_scale = 20.0
 zoom_step = 1.5
 smooth_scroll = false
+
+[app]
+last_opened_directory = "/home/user/pictures"
+default_zoom_scale = 1.0
+theme = "dark"
 "#;
         let config: Config = toml::from_str(full_toml).expect("应能解析 full config");
         assert_eq!(config.window.width, 1920.0);
@@ -895,6 +1309,12 @@ smooth_scroll = false
         assert_eq!(config.viewer.background_color, [25, 25, 25]);
         assert_eq!(config.viewer.min_scale, 0.05);
         assert_eq!(config.viewer.max_scale, 20.0);
+        assert_eq!(
+            config.app.last_opened_directory,
+            Some(PathBuf::from("/home/user/pictures"))
+        );
+        assert_eq!(config.app.default_zoom_scale, Some(1.0));
+        assert_eq!(config.app.theme, Some("dark".to_string()));
     }
 
     #[test]
@@ -1012,5 +1432,38 @@ smooth_scroll = false
         assert!(debug_str.contains("window"));
         assert!(debug_str.contains("gallery"));
         assert!(debug_str.contains("viewer"));
+        assert!(debug_str.contains("app"));
+    }
+
+    #[test]
+    fn test_unicode_path() {
+        let mut config = Config::default();
+        config.set_last_opened_directory("/home/user/图片/照片");
+
+        assert_eq!(
+            config.last_opened_directory(),
+            Some(&PathBuf::from("/home/user/图片/照片"))
+        );
+
+        // 序列化和反序列化
+        let toml_str = toml::to_string_pretty(&config).unwrap();
+        let loaded: Config = toml::from_str(&toml_str).unwrap();
+        assert_eq!(
+            config.app.last_opened_directory,
+            loaded.app.last_opened_directory
+        );
+    }
+
+    #[test]
+    fn test_path_with_spaces() {
+        let mut config = Config::default();
+        config.set_last_opened_directory("/home/user/My Photos/Vacation 2024");
+
+        let toml_str = toml::to_string_pretty(&config).unwrap();
+        let loaded: Config = toml::from_str(&toml_str).unwrap();
+        assert_eq!(
+            config.app.last_opened_directory,
+            loaded.app.last_opened_directory
+        );
     }
 }

@@ -1,6 +1,6 @@
 //! Main application module
 
-use crate::config::Config;
+use crate::config::{Config, DebouncedConfigSaver};
 use crate::decoder::ImageDecoder;
 use crate::gallery::{Gallery, NavAction};
 use crate::shortcuts_help::ShortcutsHelpPanel;
@@ -9,10 +9,11 @@ use crate::viewer::Viewer;
 use eframe::Frame;
 use egui::Context;
 use std::path::PathBuf;
-use tracing::debug;
+use tracing::{debug, info};
 
 pub struct ImageViewerApp {
     config: Config,
+    config_saver: DebouncedConfigSaver,
     gallery: Gallery,
     viewer: Viewer,
     current_view: View,
@@ -33,6 +34,7 @@ impl ImageViewerApp {
         cc: &eframe::CreationContext<'_>,
         config: Config,
         initial_path: Option<PathBuf>,
+        config_saver: DebouncedConfigSaver,
     ) -> Self {
         Self::configure_styles(&cc.egui_ctx);
         let mut app = Self {
@@ -40,6 +42,7 @@ impl ImageViewerApp {
             viewer: Viewer::new(config.viewer.clone()),
             current_view: View::Gallery,
             config,
+            config_saver,
             image_list: Vec::new(),
             current_index: 0,
             decoder: ImageDecoder::new(),
@@ -51,6 +54,12 @@ impl ImageViewerApp {
                 app.open_image(path);
             } else if path.is_dir() {
                 app.open_directory(path);
+            }
+        } else if let Some(last_dir) = app.config.last_opened_directory().map(|p| p.to_path_buf()) {
+            // 如果有上次打开的目录，尝试恢复
+            info!("恢复上次打开的目录: {:?}", last_dir);
+            if last_dir.is_dir() {
+                app.open_directory(last_dir);
             }
         }
         app
@@ -92,6 +101,8 @@ impl ImageViewerApp {
     }
 
     pub fn open_directory(&mut self, path: PathBuf) {
+        info!("打开目录: {:?}", path);
+
         if let Ok(entries) = std::fs::read_dir(&path) {
             let mut images: Vec<PathBuf> = entries
                 .filter_map(|e| e.ok())
@@ -109,6 +120,12 @@ impl ImageViewerApp {
                 let first = self.image_list[0].clone();
                 self.open_image(first);
             }
+
+            // 记录上次打开的目录
+            self.config.set_last_opened_directory(&path);
+            // 防抖保存配置
+            self.config_saver.request_save(&self.config);
+            info!("已记录并保存目录: {:?}", path);
         }
     }
 
@@ -181,7 +198,8 @@ impl eframe::App for ImageViewerApp {
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-        debug!("Application exiting");
-        let _ = self.config.save();
+        debug!("Application exiting, saving config...");
+        // 立即保存确保配置被写入
+        self.config_saver.save_now(&self.config);
     }
 }

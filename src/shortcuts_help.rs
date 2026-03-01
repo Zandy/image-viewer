@@ -88,35 +88,42 @@ impl ShortcutsHelpPanel {
                     ui.style_mut().spacing.item_spacing = Vec2::new(8.0, 12.0);
 
                     // 文件操作
-                    render_shortcut_category(ui, "📁 文件", &[
-                        ("Ctrl + O", "打开图像/文件夹"),
-                        ("Esc", "退出全屏 / 返回"),
-                    ]);
+                    render_shortcut_category(
+                        ui,
+                        "📁 文件",
+                        &[("Ctrl + O", "打开图像/文件夹"), ("Esc", "退出全屏 / 返回")],
+                    );
 
                     ui.add_space(8.0);
 
                     // 导航操作
-                    render_shortcut_category(ui, "🧭 导航", &[
-                        ("← / →", "切换到上/下一张图片"),
-                        ("G", "切换画廊/查看器视图"),
-                    ]);
+                    render_shortcut_category(
+                        ui,
+                        "🧭 导航",
+                        &[
+                            ("← / →", "切换到上/下一张图片"),
+                            ("G", "切换画廊/查看器视图"),
+                        ],
+                    );
 
                     ui.add_space(8.0);
 
                     // 视图操作
-                    render_shortcut_category(ui, "👁️ 视图", &[
-                        ("F11", "全屏切换"),
-                        ("Ctrl + +", "放大"),
-                        ("Ctrl + -", "缩小"),
-                        ("双击", "全屏切换"),
-                    ]);
+                    render_shortcut_category(
+                        ui,
+                        "👁️ 视图",
+                        &[
+                            ("F11", "全屏切换"),
+                            ("Ctrl + +", "放大"),
+                            ("Ctrl + -", "缩小"),
+                            ("双击", "全屏切换"),
+                        ],
+                    );
 
                     ui.add_space(8.0);
 
                     // 其他操作
-                    render_shortcut_category(ui, "🔧 其他", &[
-                        ("?", "显示/隐藏此帮助面板"),
-                    ]);
+                    render_shortcut_category(ui, "🔧 其他", &[("?", "显示/隐藏此帮助面板")]);
                 });
 
                 ui.add_space(16.0);
@@ -201,10 +208,7 @@ fn render_shortcut_category(ui: &mut egui::Ui, title: &str, shortcuts: &[(&str, 
                         .color(Color32::LIGHT_GRAY),
                 );
 
-                ui.with_layout(
-                    egui::Layout::right_to_left(egui::Align::Center),
-                    |_ui| {},
-                );
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |_ui| {});
             });
         }
     });
@@ -282,10 +286,21 @@ mod tests {
     fn test_multiple_toggles() {
         let mut panel = ShortcutsHelpPanel::new();
 
-        for i in 0..5 {
+        for i in 1..=10 {
             panel.toggle();
-            assert_eq!(panel.is_visible(), i % 2 == 0, "Toggle {} failed", i + 1);
+            assert_eq!(panel.is_visible(), i % 2 == 1, "Toggle {} failed", i + 1);
         }
+    }
+
+    #[test]
+    fn test_toggle_twice_returns_to_original() {
+        let mut panel = ShortcutsHelpPanel::new();
+        assert!(!panel.is_visible());
+
+        panel.toggle();
+        panel.toggle();
+
+        assert!(!panel.is_visible());
     }
 
     // =========================================================================
@@ -300,10 +315,12 @@ mod tests {
         panel.show();
         panel.show();
         panel.toggle();
+        assert!(!panel.is_visible());
         panel.hide();
+        assert!(!panel.is_visible());
         panel.toggle();
+        assert!(panel.is_visible());
         panel.show();
-
         assert!(panel.is_visible());
     }
 
@@ -318,10 +335,115 @@ mod tests {
     }
 
     #[test]
+    fn test_clone_hidden_panel() {
+        let panel = ShortcutsHelpPanel::new();
+        let cloned = panel.clone();
+        assert!(!cloned.is_visible());
+    }
+
+    #[test]
     fn test_debug_format() {
         let panel = ShortcutsHelpPanel::new();
         let debug_str = format!("{:?}", panel);
         assert!(debug_str.contains("ShortcutsHelpPanel"));
         assert!(debug_str.contains("visible"));
+        assert!(debug_str.contains("false"));
+    }
+
+    #[test]
+    fn test_debug_format_visible() {
+        let mut panel = ShortcutsHelpPanel::new();
+        panel.show();
+        let debug_str = format!("{:?}", panel);
+        assert!(debug_str.contains("true"));
+    }
+
+    // =========================================================================
+    // 状态组合测试
+    // =========================================================================
+
+    #[test]
+    fn test_all_state_transitions() {
+        let mut panel = ShortcutsHelpPanel::new();
+
+        // 初始状态：隐藏
+        assert!(!panel.is_visible());
+
+        // show() -> 显示
+        panel.show();
+        assert!(panel.is_visible());
+
+        // show() -> 仍显示
+        panel.show();
+        assert!(panel.is_visible());
+
+        // toggle() -> 隐藏
+        panel.toggle();
+        assert!(!panel.is_visible());
+
+        // toggle() -> 显示
+        panel.toggle();
+        assert!(panel.is_visible());
+
+        // hide() -> 隐藏
+        panel.hide();
+        assert!(!panel.is_visible());
+
+        // hide() -> 仍隐藏
+        panel.hide();
+        assert!(!panel.is_visible());
+
+        // toggle() -> 显示
+        panel.toggle();
+        assert!(panel.is_visible());
+
+        // toggle() -> 隐藏
+        panel.toggle();
+        assert!(!panel.is_visible());
+    }
+
+    #[test]
+    fn test_multiple_panels_independent() {
+        let mut panel1 = ShortcutsHelpPanel::new();
+        let mut panel2 = ShortcutsHelpPanel::new();
+
+        panel1.show();
+        assert!(panel1.is_visible());
+        assert!(!panel2.is_visible());
+
+        panel2.toggle();
+        assert!(panel1.is_visible());
+        assert!(panel2.is_visible());
+
+        panel1.hide();
+        assert!(!panel1.is_visible());
+        assert!(panel2.is_visible());
+    }
+
+    #[test]
+    fn test_rapid_toggle() {
+        let mut panel = ShortcutsHelpPanel::new();
+
+        for _ in 0..100 {
+            panel.toggle();
+        }
+
+        // 100 次 toggle 后应该回到初始状态（隐藏）
+        assert!(!panel.is_visible());
+    }
+
+    #[test]
+    fn test_alternating_show_hide() {
+        let mut panel = ShortcutsHelpPanel::new();
+
+        for i in 0..20 {
+            if i % 2 == 0 {
+                panel.show();
+                assert!(panel.is_visible());
+            } else {
+                panel.hide();
+                assert!(!panel.is_visible());
+            }
+        }
     }
 }

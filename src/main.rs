@@ -7,7 +7,7 @@ use eframe::NativeOptions;
 use tracing::{info, warn};
 
 use crate::app::ImageViewerApp;
-use crate::config::Config;
+use crate::config::{Config, DebouncedConfigSaver};
 
 mod app;
 mod config;
@@ -62,13 +62,21 @@ fn main() -> Result<()> {
         ..Default::default()
     };
 
+    // 创建防抖配置保存器
+    let config_saver = DebouncedConfigSaver::new();
+
     let initial_path_clone = initial_path.clone();
     eframe::run_native(
         "Image Viewer",
         native_options,
         Box::new(move |cc| {
             setup_fonts(&cc.egui_ctx);
-            Box::new(ImageViewerApp::new(cc, config, initial_path_clone))
+            Box::new(ImageViewerApp::new(
+                cc,
+                config,
+                initial_path_clone,
+                config_saver,
+            ))
         }),
     )
     .map_err(|e| anyhow::anyhow!("Failed to run application: {}", e))?;

@@ -24,6 +24,7 @@ pub struct ImageViewerApp {
     frame: Option<Frame>,
     drag_hovering: bool,
     show_about_window: bool,
+    pending_drop_files: Vec<PathBuf>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,11 +49,12 @@ impl ImageViewerApp {
             frame: None,
             drag_hovering: false,
             show_about_window: false,
+            pending_drop_files: Vec::new(),
         };
 
         if let Some(path) = initial_path {
             if path.is_file() && is_image_file(&path) {
-                app.open_image(path);
+                app.pending_drop_files.push(path);
             } else if path.is_dir() {
                 app.open_directory(path);
             }
@@ -135,7 +137,7 @@ impl ImageViewerApp {
             self.image_list = images.clone();
             
             if let Some(first) = images.first() {
-                self.open_image(first.clone());
+                self.pending_drop_files.push(first.clone());
             }
         }
     }
@@ -155,7 +157,7 @@ impl ImageViewerApp {
                 info!("Checking path: {:?}, extension: {:?}", path, path.extension());
                 if is_image_file(path) {
                     info!("Path is image file, opening...");
-                    self.open_image(path.clone());
+                    self.pending_drop_files.push(path.clone());
                 } else {
                     info!("Path is NOT an image file");
                 }
@@ -233,6 +235,7 @@ impl ImageViewerApp {
         }
     }
 
+    /// Handle file drops - only collect files, don't process immediately
     fn handle_drops(&mut self, ctx: &Context) {
         self.drag_hovering = is_drag_hovering(ctx);
         
@@ -248,14 +251,12 @@ impl ImageViewerApp {
                         }
                     }
                     
+                    // Queue the first image for opening later (not in this callback)
                     if let Some(first_path) = image_paths.first() {
                         if let Some(idx) = self.image_list.iter().position(|p| p == first_path) {
                             self.current_index = idx;
                         }
-                        
-                        let path = first_path.clone();
-                        let _ = i;
-                        self.open_image(path);
+                        self.pending_drop_files.push(first_path.clone());
                     }
                     
                     self.drag_hovering = false;
@@ -264,6 +265,16 @@ impl ImageViewerApp {
                 self.drag_hovering = false;
             }
         });
+    }
+    
+    /// Process pending files (called from update, outside of input callback)
+    fn process_pending_files(&mut self) {
+        if !self.pending_drop_files.is_empty() {
+            let paths: Vec<PathBuf> = self.pending_drop_files.drain(..).collect();
+            for path in paths {
+                self.open_image(path);
+            }
+        }
     }
     
     fn render_drag_overlay(&self, ctx: &Context) {
@@ -361,8 +372,11 @@ impl ImageViewerApp {
 }
 
 impl eframe::App for ImageViewerApp {
-    fn update(&mut self, ctx: &Context, frame: &mut Frame) {
+    fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         self.viewer.set_ctx(ctx.clone());
+        
+        // Process any pending files from drag-drop or dialog
+        self.process_pending_files();
         
         self.handle_shortcuts(ctx);
         

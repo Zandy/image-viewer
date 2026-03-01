@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use tracing::debug;
 
 use crate::config::ViewerConfig;
+use crate::info_panel::InfoPanel;
 
 /// 图像查看器状态和渲染
 pub struct Viewer {
@@ -17,6 +18,7 @@ pub struct Viewer {
     dragging: bool,
     ctx: Option<Context>,
     user_zoomed: bool, // 标记用户是否手动缩放过
+    info_panel: InfoPanel,
 }
 
 #[derive(Clone)]
@@ -31,6 +33,8 @@ impl Viewer {
     pub fn new(config: ViewerConfig) -> Self {
         debug!("初始化查看器，配置: {:?}", config);
 
+        let info_panel = InfoPanel::with_visibility(config.show_info_panel);
+
         Self {
             config,
             current_image: None,
@@ -39,6 +43,7 @@ impl Viewer {
             dragging: false,
             ctx: None,
             user_zoomed: false,
+            info_panel,
         }
     }
 
@@ -62,6 +67,7 @@ impl Viewer {
         self.scale = 1.0;
         self.offset = Vec2::ZERO;
         self.user_zoomed = false; // 重置用户缩放标志
+        self.info_panel.clear();
     }
 
     /// 设置图像和纹理
@@ -71,10 +77,18 @@ impl Viewer {
         texture: TextureHandle,
         size: [usize; 2],
     ) {
+        let dimensions = (size[0] as u32, size[1] as u32);
+        
+        // 检测图像格式
+        let format = Self::detect_image_format(&path);
+        
+        // 更新信息面板
+        self.info_panel.set_image_info(&path, dimensions, &format);
+
         self.current_image = Some(ViewImage {
             path,
             texture: Some(texture),
-            dimensions: Some((size[0] as u32, size[1] as u32)),
+            dimensions: Some(dimensions),
         });
         self.scale = 1.0;
         self.offset = Vec2::ZERO;
@@ -87,10 +101,31 @@ impl Viewer {
         self.scale = 1.0;
         self.offset = Vec2::ZERO;
         self.user_zoomed = false; // 重置用户缩放标志
+        self.info_panel.clear();
+    }
+
+    /// 检测图像格式
+    fn detect_image_format(path: &PathBuf) -> String {
+        path.extension()
+            .and_then(|e| e.to_str())
+            .map(|e| if e.is_empty() { "Unknown".to_string() } else { e.to_uppercase() })
+            .unwrap_or_else(|| "Unknown".to_string())
+    }
+
+    /// 处理输入
+    pub fn handle_input(&mut self, ctx: &Context) -> bool {
+        // 让信息面板处理其输入（F键、ESC键）
+        if self.info_panel.handle_input(ctx) {
+            return true;
+        }
+        false
     }
 
     /// 渲染查看器界面
     pub fn ui(&mut self, ui: &mut Ui) {
+        // 先渲染信息面板（在右侧）
+        self.info_panel.ui(ui.ctx());
+
         let available_size = ui.available_size();
         let bg_color = Color32::from_rgb(
             self.config.background_color[0],
@@ -139,11 +174,6 @@ impl Viewer {
                 egui::FontId::proportional(16.0),
                 Color32::GRAY,
             );
-        }
-
-        // 信息面板
-        if self.config.show_info_panel {
-            self.render_info_panel(ui);
         }
 
         // 缩放指示器
@@ -235,34 +265,6 @@ impl Viewer {
         image_size * scale
     }
 
-    /// 渲染信息面板窗口
-    fn render_info_panel(&self, ui: &mut Ui) {
-        let current_image = self.current_image.clone();
-        if let Some(ref image) = current_image {
-            egui::Window::new("📋 图像信息")
-                .default_pos([10.0, 10.0])
-                .default_size([250.0, 150.0])
-                .resizable(true)
-                .collapsible(true)
-                .show(ui.ctx(), |ui| {
-                    ui.label(format!("路径: {}", image.path.display()));
-
-                    if let Some((w, h)) = image.dimensions {
-                        ui.label(format!("尺寸: {} x {}", w, h));
-                        let mp = (w as f64 * h as f64) / 1_000_000.0;
-                        ui.label(format!("百万像素: {:.2} MP", mp));
-                    }
-
-                    ui.separator();
-                    ui.label(format!("缩放: {:.1}%", self.scale * 100.0));
-                    ui.label(format!(
-                        "偏移: ({:.0}, {:.0})",
-                        self.offset.x, self.offset.y
-                    ));
-                });
-        }
-    }
-
     /// 渲染缩放百分比指示器
     fn render_zoom_indicator(&self, ui: &mut Ui, rect: Rect) {
         let zoom_text = format!("{:.0}%", self.scale * 100.0);
@@ -335,6 +337,16 @@ impl Viewer {
     pub fn offset(&self) -> Vec2 {
         self.offset
     }
+
+    /// 获取信息面板引用
+    pub fn info_panel(&self) -> &InfoPanel {
+        &self.info_panel
+    }
+
+    /// 获取信息面板可变引用
+    pub fn info_panel_mut(&mut self) -> &mut InfoPanel {
+        &mut self.info_panel
+    }
 }
 
 #[cfg(test)]
@@ -352,6 +364,17 @@ mod tests {
 
         assert_eq!(viewer.scale(), 1.0);
         assert_eq!(viewer.offset(), Vec2::ZERO);
+        assert!(!viewer.info_panel.is_visible());
+    }
+
+    #[test]
+    fn test_viewer_with_show_info_panel() {
+        let config = ViewerConfig {
+            show_info_panel: true,
+            ..Default::default()
+        };
+        let viewer = Viewer::new(config);
+        assert!(viewer.info_panel.is_visible());
     }
 
     #[test]
@@ -367,6 +390,7 @@ mod tests {
         };
         let viewer = Viewer::new(config);
         assert_eq!(viewer.scale(), 1.0);
+        assert!(viewer.info_panel.is_visible());
     }
 
     // =========================================================================
@@ -570,10 +594,8 @@ mod tests {
         let mut viewer = Viewer::new(config);
 
         viewer.set_image(std::path::PathBuf::from("test.png"));
-        // 图像应该已设置（在没有egui上下文的情况下不易验证）
 
         viewer.clear();
-        // 应该重置状态
         assert_eq!(viewer.scale(), 1.0);
         assert_eq!(viewer.offset(), Vec2::ZERO);
     }
@@ -597,7 +619,6 @@ mod tests {
         let config = ViewerConfig::default();
         let mut viewer = Viewer::new(config);
 
-        // 清空已经空的查看器
         viewer.clear();
         assert_eq!(viewer.scale(), 1.0);
         assert_eq!(viewer.offset(), Vec2::ZERO);
@@ -767,6 +788,46 @@ mod tests {
         // 应适配宽度，高度按比例缩放
         assert_eq!(result.x, 800.0);
         assert_eq!(result.y, 450.0);
+    }
+
+    // =========================================================================
+    // 辅助函数测试
+    // =========================================================================
+
+    #[test]
+    fn test_detect_image_format() {
+        assert_eq!(Viewer::detect_image_format(&std::path::PathBuf::from("test.png")), "PNG");
+        assert_eq!(Viewer::detect_image_format(&std::path::PathBuf::from("test.jpg")), "JPG");
+        assert_eq!(Viewer::detect_image_format(&std::path::PathBuf::from("test.jpeg")), "JPEG");
+        assert_eq!(Viewer::detect_image_format(&std::path::PathBuf::from("test.gif")), "GIF");
+        assert_eq!(Viewer::detect_image_format(&std::path::PathBuf::from("/path/to/image.webp")), "WEBP");
+    }
+
+    #[test]
+    fn test_detect_image_format_unknown() {
+        assert_eq!(Viewer::detect_image_format(&std::path::PathBuf::from("test")), "Unknown");
+        assert_eq!(Viewer::detect_image_format(&std::path::PathBuf::from("test.")), "Unknown");
+    }
+
+    // =========================================================================
+    // 信息面板集成测试
+    // =========================================================================
+
+    #[test]
+    fn test_info_panel_accessor() {
+        let config = ViewerConfig::default();
+        let viewer = Viewer::new(config);
+        
+        assert!(!viewer.info_panel().is_visible());
+    }
+
+    #[test]
+    fn test_info_panel_mut_accessor() {
+        let config = ViewerConfig::default();
+        let mut viewer = Viewer::new(config);
+        
+        viewer.info_panel_mut().show();
+        assert!(viewer.info_panel().is_visible());
     }
 
     // =========================================================================

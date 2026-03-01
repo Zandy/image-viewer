@@ -91,7 +91,7 @@ impl ShortcutsHelpPanel {
                     render_shortcut_category(
                         ui,
                         "📁 文件",
-                        &[("Ctrl + O", "打开图像/文件夹"), ("Esc", "退出全屏 / 返回")],
+                        &[("Ctrl + O", "打开图像/文件夹"), ("Esc", "退出全屏 / 关闭面板")],
                     );
 
                     ui.add_space(8.0);
@@ -116,6 +116,7 @@ impl ShortcutsHelpPanel {
                             ("F11", "全屏切换"),
                             ("Ctrl + +", "放大"),
                             ("Ctrl + -", "缩小"),
+                            ("F", "显示/隐藏信息面板"),
                             ("双击", "全屏切换"),
                         ],
                     );

@@ -151,6 +151,11 @@ impl ImageViewerApp {
     }
 
     fn handle_shortcuts(&mut self, ctx: &Context) {
+        // 如果查看器正在处理输入（如F键切换信息面板），不要处理其他快捷键
+        if self.viewer.handle_input(ctx) {
+            return;
+        }
+
         if ctx.input(|i| i.key_pressed(egui::Key::G)) {
             self.toggle_view();
         }

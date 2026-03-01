@@ -16,6 +16,7 @@ mod dnd;
 mod gallery;
 mod shortcuts_help;
 mod utils;
+mod info_panel;
 mod viewer;
 
 fn main() -> Result<()> {

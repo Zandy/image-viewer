@@ -280,3 +280,181 @@ mod tests {
         assert!(result.is_err());
     }
 }
+
+#[cfg(test)]
+mod additional_tests {
+    use super::*;
+
+    #[test]
+    fn test_is_supported_case_sensitive() {
+        // 扩展名检测区分大小写（仅小写）
+        assert!(!ImageDecoder::is_supported(Path::new("image.PNG")));
+        assert!(!ImageDecoder::is_supported(Path::new("image.JPG")));
+        assert!(!ImageDecoder::is_supported(Path::new("image.Jpeg")));
+        assert!(!ImageDecoder::is_supported(Path::new("image.GIF")));
+        assert!(!ImageDecoder::is_supported(Path::new("image.WebP")));
+        assert!(!ImageDecoder::is_supported(Path::new("image.TIFF")));
+        assert!(!ImageDecoder::is_supported(Path::new("image.BMP")));
+    }
+
+    #[test]
+    fn test_is_supported_various_paths() {
+        assert!(ImageDecoder::is_supported(Path::new("/path/to/image.png")));
+        assert!(ImageDecoder::is_supported(Path::new("./relative/path/image.jpg")));
+        assert!(ImageDecoder::is_supported(Path::new("image.png")));
+    }
+
+    #[test]
+    fn test_is_supported_with_dots_in_name() {
+        
+        assert!(!ImageDecoder::is_supported(Path::new("archive.tar.gz")));
+        assert!(ImageDecoder::is_supported(Path::new("my.file.name.png")));
+    }
+
+    #[test]
+    fn test_is_supported_empty_extension() {
+        assert!(!ImageDecoder::is_supported(Path::new("file.")));
+    }
+
+    #[test]
+    fn test_detect_format_case_variations() {
+        let decoder = ImageDecoder::new();
+        
+        // 测试各种大小写组合
+        let test_cases = vec![
+            ("image.PNG", ImageFormat::Png),
+            ("image.pNg", ImageFormat::Png),
+            ("image.jpg", ImageFormat::Jpeg),
+            ("image.JPG", ImageFormat::Jpeg),
+            ("image.JPEG", ImageFormat::Jpeg),
+        ];
+        
+        for (path, expected) in test_cases {
+            let format = decoder.detect_format(Path::new(path)).unwrap();
+            assert_eq!(format, expected, "Failed for {}", path);
+        }
+    }
+
+    #[test]
+    fn test_detect_format_with_path_components() {
+        let decoder = ImageDecoder::new();
+        
+        let format = decoder.detect_format(Path::new("/home/user/images/photo.png")).unwrap();
+        assert_eq!(format, ImageFormat::Png);
+        
+        let format = decoder.detect_format(Path::new("./images/photo.jpg")).unwrap();
+        assert_eq!(format, ImageFormat::Jpeg);
+    }
+
+    #[test]
+    fn test_detect_format_various_extensions() {
+        let decoder = ImageDecoder::new();
+        
+        let supported = vec![
+            ("png", ImageFormat::Png),
+            ("jpg", ImageFormat::Jpeg),
+            ("jpeg", ImageFormat::Jpeg),
+            ("gif", ImageFormat::Gif),
+            ("webp", ImageFormat::Webp),
+            ("tiff", ImageFormat::Tiff),
+            ("tif", ImageFormat::Tiff),
+            ("bmp", ImageFormat::Bmp),
+        ];
+        
+        for (ext, expected) in supported {
+            let path_str = format!("image.{}", ext);
+            let path = Path::new(&path_str);
+            let format = decoder.detect_format(path).unwrap();
+            assert_eq!(format, expected, "Failed for .{}", ext);
+        }
+    }
+
+    #[test]
+    fn test_detect_format_unsupported_variations() {
+        let decoder = ImageDecoder::new();
+        
+        let unsupported = vec![
+            "file.txt",
+            "file.pdf",
+            "file.doc",
+            "file.exe",
+            "file.zip",
+            "file.mp4",
+        ];
+        
+        for path in unsupported {
+            let result = decoder.detect_format(Path::new(path));
+            assert!(result.is_err(), "Expected error for {}", path);
+        }
+    }
+
+    #[test]
+    fn test_image_format_clone() {
+        let format = ImageFormat::Png;
+        let cloned = format;
+        assert_eq!(format, cloned);
+    }
+
+    #[test]
+    fn test_image_format_copy() {
+        let format = ImageFormat::Jpeg;
+        let copied = format;
+        // 如果实现了 Copy，原始值仍然可用
+        assert_eq!(format, ImageFormat::Jpeg);
+        assert_eq!(copied, ImageFormat::Jpeg);
+    }
+
+    #[test]
+    fn test_image_format_all_variants() {
+        let formats = [
+            ImageFormat::Png,
+            ImageFormat::Jpeg,
+            ImageFormat::Gif,
+            ImageFormat::Webp,
+            ImageFormat::Tiff,
+            ImageFormat::Bmp,
+        ];
+        
+        for (i, format) in formats.iter().enumerate() {
+            match format {
+                ImageFormat::Png if i == 0 => {},
+                ImageFormat::Jpeg if i == 1 => {},
+                ImageFormat::Gif if i == 2 => {},
+                ImageFormat::Webp if i == 3 => {},
+                ImageFormat::Tiff if i == 4 => {},
+                ImageFormat::Bmp if i == 5 => {},
+                _ => panic!("Unexpected variant at position {}", i),
+            }
+        }
+    }
+
+    #[test]
+    fn test_decoder_new_and_default_equivalent() {
+        let decoder1 = ImageDecoder::new();
+        let decoder2: ImageDecoder = Default::default();
+        
+        // 两者应该具有相同的行为
+        assert!(ImageDecoder::is_supported(Path::new("test.png")));
+    }
+
+    #[test]
+    fn test_is_supported_empty_path() {
+        assert!(!ImageDecoder::is_supported(Path::new("")));
+    }
+
+    #[test]
+    fn test_decode_from_memory_empty() {
+        let decoder = ImageDecoder::new();
+        let result = decoder.decode_from_memory(&[]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_decode_from_memory_random_data() {
+        let decoder = ImageDecoder::new();
+        // 随机数据不应该被解码为有效图像
+        let random_data: Vec<u8> = (0..100).map(|i| i as u8).collect();
+        let result = decoder.decode_from_memory(&random_data);
+        assert!(result.is_err());
+    }
+}

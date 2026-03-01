@@ -2,6 +2,7 @@
 chcp 65001 >nul
 :: Image-Viewer Windows Installer
 :: This script installs Image-Viewer and registers it in the context menu
+:: Supports Windows 10 and Windows 11
 
 setlocal EnableDelayedExpansion
 
@@ -10,17 +11,9 @@ echo Image-Viewer Windows Installation
 echo =========================================
 echo.
 
-:: Check for admin privileges
-net session >nul 2>&1
-if %errorLevel% neq 0 (
-    echo Error: Administrator privileges required.
-    echo Please run this script as Administrator.
-    pause
-    exit /b 1
-)
-
 :: Set installation directory
-set "INSTALL_DIR=%PROGRAMFILES%\Image-Viewer"
+:: Use LocalAppData for user-specific installation (recommended for Windows 10/11)
+set "INSTALL_DIR=%LOCALAPPDATA%\Image-Viewer"
 set "SOURCE_DIR=%~dp0"
 
 echo Installation directory: %INSTALL_DIR%
@@ -46,9 +39,24 @@ if exist "%SOURCE_DIR%\..\..\target\release\image-viewer.exe" (
     exit /b 1
 )
 
+:: Detect Windows version
+for /f "tokens=4-5 delims=. " %%i in ('ver') do set VERSION=%%i.%%j
+
 :: Register context menu
-echo Registering context menu entries...
-regedit /s "%SOURCE_DIR%\register-context-menu.reg"
+:: Use the new Windows 10/11 compatible registry file
+if exist "%SOURCE_DIR%\register-context-menu-win10-win11.reg" (
+    echo.
+    echo Detected Windows %VERSION%
+    echo Using modern registry registration (Windows 10/11 compatible)...
+    echo.
+    regedit /s "%SOURCE_DIR%\register-context-menu-win10-win11.reg"
+) else (
+    echo.
+    echo Using legacy registry registration...
+    echo Note: This requires Administrator privileges on some systems.
+    echo.
+    regedit /s "%SOURCE_DIR%\register-context-menu.reg"
+)
 
 if %errorLevel% equ 0 (
     echo.
@@ -60,9 +68,16 @@ if %errorLevel% equ 0 (
     echo.
     echo You can now right-click on image files to open with Image-Viewer.
     echo.
+    echo Supported formats: PNG, JPG, JPEG, GIF, WebP, TIFF, TIF, BMP, ICO, HEIC, HEIF, AVIF
+    echo.
 ) else (
     echo.
     echo Error: Failed to register context menu.
+    echo.
+    echo Troubleshooting:
+    echo 1. Make sure you have write access to the registry
+    echo 2. Try running as Administrator if the above fails
+    echo 3. Check if the .reg files exist in: %SOURCE_DIR%
     echo.
 )
 

@@ -1,0 +1,100 @@
+Windows Registry Editor Version 5.00
+
+; Image-Viewer Context Menu Registration for Windows 10/11
+; This file adds "Open with Image-Viewer" to the right-click context menu for image files
+; 
+; For Windows 10/11, we use HKEY_CURRENT_USER\Software\Classes instead of HKEY_CLASSES_ROOT
+; This doesn't require Administrator privileges and works better with modern Windows
+
+; PNG Files
+[HKEY_CURRENT_USER\Software\Classes\.png\shell\OpenWithImageViewer]
+@="使用 Image-Viewer 打开"
+"Icon"="%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\.png\shell\OpenWithImageViewer\command]
+@="\"%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe\" \"%1\""
+
+; JPEG/JPG Files
+[HKEY_CURRENT_USER\Software\Classes\.jpg\shell\OpenWithImageViewer]
+@="使用 Image-Viewer 打开"
+"Icon"="%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\.jpg\shell\OpenWithImageViewer\command]
+@="\"%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe\" \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\.jpeg\shell\OpenWithImageViewer]
+@="使用 Image-Viewer 打开"
+"Icon"="%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\.jpeg\shell\OpenWithImageViewer\command]
+@="\"%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe\" \"%1\""
+
+; GIF Files
+[HKEY_CURRENT_USER\Software\Classes\.gif\shell\OpenWithImageViewer]
+@="使用 Image-Viewer 打开"
+"Icon"="%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\.gif\shell\OpenWithImageViewer\command]
+@="\"%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe\" \"%1\""
+
+; WebP Files
+[HKEY_CURRENT_USER\Software\Classes\.webp\shell\OpenWithImageViewer]
+@="使用 Image-Viewer 打开"
+"Icon"="%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\.webp\shell\OpenWithImageViewer\command]
+@="\"%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe\" \"%1\""
+
+; TIFF/TIF Files
+[HKEY_CURRENT_USER\Software\Classes\.tiff\shell\OpenWithImageViewer]
+@="使用 Image-Viewer 打开"
+"Icon"="%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\.tiff\shell\OpenWithImageViewer\command]
+@="\"%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe\" \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\.tif\shell\OpenWithImageViewer]
+@="使用 Image-Viewer 打开"
+"Icon"="%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\.tif\shell\OpenWithImageViewer\command]
+@="\"%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe\" \"%1\""
+
+; BMP Files
+[HKEY_CURRENT_USER\Software\Classes\.bmp\shell\OpenWithImageViewer]
+@="使用 Image-Viewer 打开"
+"Icon"="%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\.bmp\shell\OpenWithImageViewer\command]
+@="\"%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe\" \"%1\""
+
+; ICO Files
+[HKEY_CURRENT_USER\Software\Classes\.ico\shell\OpenWithImageViewer]
+@="使用 Image-Viewer 打开"
+"Icon"="%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\.ico\shell\OpenWithImageViewer\command]
+@="\"%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe\" \"%1\""
+
+; HEIC/HEIF Files (iPhone format)
+[HKEY_CURRENT_USER\Software\Classes\.heic\shell\OpenWithImageViewer]
+@="使用 Image-Viewer 打开"
+"Icon"="%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\.heic\shell\OpenWithImageViewer\command]
+@="\"%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe\" \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\.heif\shell\OpenWithImageViewer]
+@="使用 Image-Viewer 打开"
+"Icon"="%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\.heif\shell\OpenWithImageViewer\command]
+@="\"%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe\" \"%1\""
+
+; AVIF Files
+[HKEY_CURRENT_USER\Software\Classes\.avif\shell\OpenWithImageViewer]
+@="使用 Image-Viewer 打开"
+"Icon"="%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\.avif\shell\OpenWithImageViewer\command]
+@="\"%USERPROFILE%\\AppData\\Local\\Image-Viewer\\image-viewer.exe\" \"%1\""

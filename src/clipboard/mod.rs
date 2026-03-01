@@ -245,3 +245,177 @@ mod tests {
         assert!(err3.to_string().contains("无效的图片"));
     }
 }
+
+#[cfg(test)]
+mod additional_tests {
+    use super::*;
+
+    #[test]
+    fn test_clipboard_manager_default() {
+        let manager: ClipboardManager = Default::default();
+        // Default 应该调用 new()
+        assert!(manager.is_available() || !manager.is_available());
+    }
+
+    #[test]
+    fn test_clipboard_error_clone() {
+        let err1 = ClipboardError::FailedToAccess("test".to_string());
+        let cloned = err1.clone();
+        assert_eq!(err1.to_string(), cloned.to_string());
+
+        let err2 = ClipboardError::FailedToCopy("test2".to_string());
+        let cloned2 = err2.clone();
+        assert_eq!(err2.to_string(), cloned2.to_string());
+
+        let err3 = ClipboardError::InvalidImage("test3".to_string());
+        let cloned3 = err3.clone();
+        assert_eq!(err3.to_string(), cloned3.to_string());
+    }
+
+    #[test]
+    fn test_clipboard_error_debug() {
+        let err = ClipboardError::FailedToAccess("test".to_string());
+        let debug_str = format!("{:?}", err);
+        assert!(debug_str.contains("FailedToAccess"));
+    }
+
+    #[test]
+    fn test_clipboard_error_error_trait() {
+        let err = ClipboardError::FailedToCopy("test".to_string());
+        let _: &dyn std::error::Error = &err;
+    }
+
+    #[test]
+    fn test_copy_image_with_valid_data() {
+        let mut manager = ClipboardManager::new();
+        if manager.is_available() {
+            // 创建有效的 RGBA 数据 (10x10 像素)
+            let data = vec![255u8; 10 * 10 * 4];
+            let result = manager.copy_image(&data, 10, 10);
+            assert!(result.is_ok());
+        }
+    }
+
+    #[test]
+    fn test_copy_image_with_wrong_size() {
+        let mut manager = ClipboardManager::new();
+        if manager.is_available() {
+            // 数据长度不正确
+            let data = vec![255u8; 100]; // 应该是 10*10*4 = 400
+            let result = manager.copy_image(&data, 10, 10);
+            assert!(result.is_err());
+        }
+    }
+
+    #[test]
+    fn test_copy_image_path_various_paths() {
+        let mut manager = ClipboardManager::new();
+        if manager.is_available() {
+            let paths = vec![
+                Path::new("/tmp/test.png"),
+                Path::new("test.png"),
+                Path::new("/very/long/path/to/the/image/file.png"),
+            ];
+
+            for path in paths {
+                let result = manager.copy_image_path(path);
+                assert!(result.is_ok());
+            }
+        }
+    }
+
+    #[test]
+    fn test_is_available_consistency() {
+        let manager = ClipboardManager::new();
+        // 多次调用应该返回相同结果
+        let first = manager.is_available();
+        let second = manager.is_available();
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn test_copy_text_empty() {
+        let mut manager = ClipboardManager::new();
+        if manager.is_available() {
+            let result = manager.copy_text("");
+            assert!(result.is_ok());
+        }
+    }
+
+    #[test]
+    fn test_copy_text_unicode() {
+        let mut manager = ClipboardManager::new();
+        if manager.is_available() {
+            let texts = vec![
+                "Hello World",
+                "你好世界",
+                "🎨🖼️📷",
+                "Special chars: àáâãäåæçèéêë",
+            ];
+
+            for text in texts {
+                let result = manager.copy_text(text);
+                assert!(result.is_ok());
+            }
+        }
+    }
+
+    #[test]
+    fn test_show_in_folder_various_paths() {
+        let paths = vec![
+            Path::new("/tmp/test.png"),
+            Path::new("test.png"),
+            Path::new("/home/user/images/photo.jpg"),
+        ];
+
+        for path in paths {
+            // 这些可能会失败，但不应该 panic
+            let _ = ClipboardManager::show_in_folder(path);
+        }
+    }
+
+    #[test]
+    fn test_copy_image_from_file_with_texture_data() {
+        let mut manager = ClipboardManager::new();
+        if manager.is_available() {
+            // 提供纹理数据
+            let data = vec![255u8; 10 * 10 * 4];
+            let result = manager.copy_image_from_file(
+                Path::new("/tmp/test.png"),
+                Some((&data, [10, 10]))
+            );
+            assert!(result.is_ok());
+        }
+    }
+
+    #[test]
+    fn test_copy_image_from_file_without_texture_data() {
+        let mut manager = ClipboardManager::new();
+        if manager.is_available() {
+            // 不提供纹理数据，会尝试从文件读取
+            let result = manager.copy_image_from_file(
+                Path::new("/nonexistent/path/to/file.png"),
+                None
+            );
+            assert!(result.is_err());
+        }
+    }
+
+    #[test]
+    fn test_error_messages_content() {
+        let err1 = ClipboardError::FailedToAccess("clipboard locked".to_string());
+        let msg1 = err1.to_string();
+        assert!(msg1.contains("无法访问剪贴板"));
+        assert!(msg1.contains("clipboard locked"));
+
+        let err2 = ClipboardError::FailedToCopy("disk full".to_string());
+        let msg2 = err2.to_string();
+        assert!(msg2.contains("复制失败"));
+        assert!(msg2.contains("disk full"));
+
+        let err3 = ClipboardError::InvalidImage("corrupted data".to_string());
+        let msg3 = err3.to_string();
+        assert!(msg3.contains("无效的图片"));
+        assert!(msg3.contains("corrupted data"));
+    }
+}

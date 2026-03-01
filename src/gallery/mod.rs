@@ -815,3 +815,303 @@ mod tests {
         assert_eq!(gallery.selected_index(), Some(1));
     }
 }
+
+#[cfg(test)]
+mod additional_tests {
+    use super::*;
+
+    #[test]
+    fn test_gallery_new_with_config() {
+        let config = GalleryConfig {
+            thumbnail_size: 100,
+            items_per_row: 4,
+            grid_spacing: 10.0,
+            show_filenames: true,
+        };
+        let gallery = Gallery::new(config);
+        
+        assert!(gallery.is_empty());
+        assert_eq!(gallery.len(), 0);
+        assert_eq!(gallery.config().thumbnail_size, 100);
+    }
+
+    #[test]
+    fn test_gallery_clear_resets_state() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        for i in 0..5 {
+            gallery.add_image(std::path::PathBuf::from(format!("img{}.png", i)));
+        }
+        gallery.select_image(2);
+        
+        assert_eq!(gallery.len(), 5);
+        
+        gallery.clear();
+        
+        assert!(gallery.is_empty());
+        assert_eq!(gallery.len(), 0);
+        assert!(gallery.selected_index().is_none());
+    }
+
+    #[test]
+    fn test_gallery_select_invalid_indices() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        gallery.add_image(std::path::PathBuf::from("img.png"));
+        
+        // 测试各种无效索引
+        assert!(!gallery.select_image(1));
+        assert!(!gallery.select_image(100));
+        assert!(!gallery.select_image(usize::MAX));
+    }
+
+    #[test]
+    fn test_gallery_navigation_with_empty() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        // 空图库所有导航都应该失败
+        assert!(!gallery.select_next());
+        assert!(!gallery.select_prev());
+        assert!(!gallery.select_up());
+        assert!(!gallery.select_down());
+        assert!(!gallery.select_image(0));
+    }
+
+    #[test]
+    fn test_gallery_get_image_path_out_of_bounds() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        gallery.add_image(std::path::PathBuf::from("img.png"));
+        
+        assert!(gallery.get_image_path(0).is_some());
+        assert!(gallery.get_image_path(1).is_none());
+        assert!(gallery.get_image_path(100).is_none());
+    }
+
+    #[test]
+    fn test_gallery_get_selected_path_when_none() {
+        let config = GalleryConfig::default();
+        let gallery = Gallery::new(config);
+        
+        // 没有选中时返回 None
+        assert!(gallery.get_selected_path().is_none());
+    }
+
+    #[test]
+    fn test_gallery_remove_returns_correct_path() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        let path1 = std::path::PathBuf::from("img1.png");
+        let path2 = std::path::PathBuf::from("img2.png");
+        
+        gallery.add_image(path1.clone());
+        gallery.add_image(path2.clone());
+        
+        let removed = gallery.remove_image(0);
+        assert_eq!(removed, Some(path1));
+        
+        let removed2 = gallery.remove_image(0);
+        assert_eq!(removed2, Some(path2));
+        
+        assert!(gallery.remove_image(0).is_none());
+    }
+
+    #[test]
+    fn test_gallery_select_next_wrap_around() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        gallery.add_image(std::path::PathBuf::from("img1.png"));
+        gallery.add_image(std::path::PathBuf::from("img2.png"));
+        
+        gallery.select_image(1); // 选择最后一个
+        
+        // 不应该超出边界
+        assert!(!gallery.select_next());
+        assert_eq!(gallery.selected_index(), Some(1));
+    }
+
+    #[test]
+    fn test_gallery_select_prev_wrap_around() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        gallery.add_image(std::path::PathBuf::from("img1.png"));
+        gallery.add_image(std::path::PathBuf::from("img2.png"));
+        
+        gallery.select_image(0); // 选择第一个
+        
+        // 不应该超出边界
+        assert!(!gallery.select_prev());
+        assert_eq!(gallery.selected_index(), Some(0));
+    }
+
+    #[test]
+    fn test_gallery_add_multiple_images() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        let paths: Vec<_> = (0..100)
+            .map(|i| std::path::PathBuf::from(format!("img{}.png", i)))
+            .collect();
+        
+        for path in &paths {
+            gallery.add_image(path.clone());
+        }
+        
+        assert_eq!(gallery.len(), 100);
+        assert!(!gallery.is_empty());
+    }
+
+    #[test]
+    fn test_gallery_images_accessor_returns_correct_count() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        gallery.add_image(std::path::PathBuf::from("img1.png"));
+        gallery.add_image(std::path::PathBuf::from("img2.png"));
+        
+        assert_eq!(gallery.images().len(), 2);
+    }
+
+    #[test]
+    fn test_gallery_config_accessor() {
+        let config = GalleryConfig {
+            thumbnail_size: 150,
+            items_per_row: 5,
+            grid_spacing: 15.0,
+            show_filenames: false,
+        };
+        let gallery = Gallery::new(config.clone());
+        
+        assert_eq!(gallery.config().thumbnail_size, 150);
+        assert_eq!(gallery.config().items_per_row, 5);
+        assert_eq!(gallery.config().grid_spacing, 15.0);
+        assert!(!gallery.config().show_filenames);
+    }
+
+    #[test]
+    fn test_gallery_update_config_changes_values() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        let new_config = GalleryConfig {
+            thumbnail_size: 180,
+            items_per_row: 6,
+            grid_spacing: 12.0,
+            show_filenames: true,
+        };
+        
+        gallery.update_config(new_config);
+        
+        assert_eq!(gallery.config().thumbnail_size, 180);
+        assert_eq!(gallery.config().items_per_row, 6);
+    }
+
+    #[test]
+    fn test_gallery_image_struct_fields() {
+        let image = GalleryImage {
+            path: std::path::PathBuf::from("test.png"),
+            thumbnail: None,
+            is_loading: true,
+        };
+        
+        assert_eq!(image.path.file_name().unwrap(), "test.png");
+        assert!(image.thumbnail.is_none());
+        assert!(image.is_loading);
+    }
+
+    #[test]
+    fn test_nav_action_equality() {
+        assert_eq!(NavAction::None, NavAction::None);
+        assert_eq!(NavAction::SelectAndOpen(5), NavAction::SelectAndOpen(5));
+        assert_ne!(NavAction::SelectAndOpen(5), NavAction::SelectAndOpen(3));
+        assert_ne!(NavAction::None, NavAction::SelectAndOpen(0));
+    }
+
+    #[test]
+    fn test_nav_action_clone() {
+        let action = NavAction::SelectAndOpen(5);
+        let cloned = action;
+        assert_eq!(action, cloned);
+    }
+
+    #[test]
+    fn test_gallery_select_next_from_none() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        gallery.add_image(std::path::PathBuf::from("img1.png"));
+        gallery.add_image(std::path::PathBuf::from("img2.png"));
+        
+        // 没有选择时 select_next 应该选择第一个
+        assert!(gallery.select_next());
+        assert_eq!(gallery.selected_index(), Some(0));
+    }
+
+    #[test]
+    fn test_gallery_select_prev_from_none() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        gallery.add_image(std::path::PathBuf::from("img1.png"));
+        gallery.add_image(std::path::PathBuf::from("img2.png"));
+        
+        // 没有选择时 select_prev 应该选择最后一个
+        assert!(gallery.select_prev());
+        assert_eq!(gallery.selected_index(), Some(1));
+    }
+
+    #[test]
+    fn test_gallery_select_up_at_top_with_items() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        for i in 0..6 {
+            gallery.add_image(std::path::PathBuf::from(format!("img{}.png", i)));
+        }
+        gallery.items_per_row = 3;
+        
+        // 选择第一行的项目
+        gallery.select_image(1);
+        
+        // 向上应该在顶部停止
+        assert!(!gallery.select_up());
+        assert_eq!(gallery.selected_index(), Some(1));
+    }
+
+    #[test]
+    fn test_gallery_select_down_at_bottom_with_items() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        for i in 0..6 {
+            gallery.add_image(std::path::PathBuf::from(format!("img{}.png", i)));
+        }
+        gallery.items_per_row = 3;
+        
+        // 选择最后一行的项目
+        gallery.select_image(4);
+        
+        // 向下应该在底部停止
+        assert!(!gallery.select_down());
+        assert_eq!(gallery.selected_index(), Some(4));
+    }
+
+    #[test]
+    fn test_gallery_len_is_consistent() {
+        let config = GalleryConfig::default();
+        let mut gallery = Gallery::new(config);
+        
+        assert_eq!(gallery.len(), gallery.images().len());
+        
+        gallery.add_image(std::path::PathBuf::from("img.png"));
+        assert_eq!(gallery.len(), 1);
+        assert_eq!(gallery.len(), gallery.images().len());
+    }
+}

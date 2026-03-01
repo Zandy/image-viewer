@@ -218,3 +218,143 @@ mod tests {
         )));
     }
 }
+
+#[cfg(test)]
+mod additional_tests {
+    use super::*;
+
+    #[test]
+    fn test_is_image_file_various_cases() {
+        // 测试混合大小写
+        assert!(is_image_file(std::path::Path::new("test.Png")));
+        assert!(is_image_file(std::path::Path::new("test.jPg")));
+        assert!(is_image_file(std::path::Path::new("test.GIF")));
+    }
+
+    #[test]
+    fn test_is_image_file_no_extension() {
+        assert!(!is_image_file(std::path::Path::new("README")));
+        assert!(!is_image_file(std::path::Path::new("Makefile")));
+    }
+
+    #[test]
+    fn test_is_image_file_hidden_files() {
+        // 隐藏文件可能有扩展名
+        assert!(is_image_file(std::path::Path::new(".image.png")));
+        assert!(!is_image_file(std::path::Path::new(".gitignore")));
+    }
+
+    #[test]
+    fn test_is_image_file_dots_in_name() {
+        assert!(is_image_file(std::path::Path::new("my.image.file.png")));
+        assert!(is_image_file(std::path::Path::new("archive.v2.jpg")));
+    }
+
+    #[test]
+    fn test_is_image_file_edge_cases() {
+        // 空字符串
+        assert!(!is_image_file(std::path::Path::new("")));
+        
+        // 只有扩展名分隔符
+        assert!(!is_image_file(std::path::Path::new(".")));
+        assert!(!is_image_file(std::path::Path::new("..")));
+        
+        // 以点结尾
+        assert!(!is_image_file(std::path::Path::new("file.")));
+    }
+
+    #[test]
+    fn test_is_image_file_full_paths() {
+        let paths = vec![
+            "/usr/share/images/wallpaper.png",
+            "C:\\Users\\User\\Pictures\\photo.jpg",
+            "./images/animation.gif",
+            "../assets/icon.webp",
+            "~/Documents/screenshot.bmp",
+        ];
+        
+        for path in paths {
+            assert!(is_image_file(std::path::Path::new(path)), "Failed for {}", path);
+        }
+    }
+
+    #[test]
+    fn test_collect_images_from_dir_nonexistent() {
+        let result = collect_images_from_dir(std::path::Path::new("/this/path/does/not/exist"));
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_collect_images_from_dir_is_file() {
+        // 传入文件路径而不是目录
+        let result = collect_images_from_dir(std::path::Path::new("test.png"));
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_supported_extensions_comprehensive() {
+        // 所有支持的格式
+        let supported = vec![
+            ("png", true),
+            ("jpg", true),
+            ("jpeg", true),
+            ("gif", true),
+            ("webp", true),
+            ("tiff", true),
+            ("tif", true),
+            ("bmp", true),
+            // 不支持的格式
+            ("txt", false),
+            ("rs", false),
+            ("toml", false),
+            ("md", false),
+            ("pdf", false),
+            ("doc", false),
+            ("exe", false),
+            ("zip", false),
+            ("mp4", false),
+            ("avi", false),
+            ("mp3", false),
+            ("wav", false),
+            ("svg", false),
+            ("ico", false),
+            ("raw", false),
+        ];
+        
+        for (ext, expected) in supported {
+            let path = std::path::PathBuf::from(format!("test.{}", ext));
+            let result = is_image_file(&path);
+            assert_eq!(
+                result, expected,
+                "Extension {}: expected {}, got {}",
+                ext, expected, result
+            );
+        }
+    }
+
+    #[test]
+    fn test_is_image_file_with_spaces() {
+        assert!(is_image_file(std::path::Path::new("my image file.png")));
+        assert!(is_image_file(std::path::Path::new("screenshot 2024.png")));
+    }
+
+    #[test]
+    fn test_is_image_file_unicode() {
+        assert!(is_image_file(std::path::Path::new("图片.png")));
+        assert!(is_image_file(std::path::Path::new("画像.jpg")));
+        assert!(is_image_file(std::path::Path::new("이미지.gif")));
+    }
+
+    #[test]
+    fn test_is_image_file_numbers() {
+        assert!(is_image_file(std::path::Path::new("image001.png")));
+        assert!(is_image_file(std::path::Path::new("123.jpg")));
+    }
+
+    #[test]
+    fn test_is_image_file_special_chars() {
+        assert!(is_image_file(std::path::Path::new("image-file.png")));
+        assert!(is_image_file(std::path::Path::new("image_file.jpg")));
+        assert!(is_image_file(std::path::Path::new("image+file.gif")));
+    }
+}

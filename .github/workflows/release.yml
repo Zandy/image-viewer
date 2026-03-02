@@ -189,12 +189,53 @@ jobs:
           dist/dmg/ 2>/dev/null || echo "DMG creation skipped"
       continue-on-error: true
     
+    - name: Create AppImage (Linux x86_64)
+      if: matrix.target == 'x86_64-unknown-linux-gnu'
+      run: |
+        # 安装 linuxdeploy 和 appimagetool
+        wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage -O linuxdeploy.AppImage
+        chmod +x linuxdeploy.AppImage
+        
+        # 创建 AppDir 结构
+        mkdir -p AppDir/usr/bin
+        mkdir -p AppDir/usr/share/applications
+        mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+        
+        # 复制二进制文件
+        cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} AppDir/usr/bin/
+        
+        # 创建 .desktop 文件
+        cat > AppDir/usr/share/applications/image-viewer.desktop << 'EOF'
+        [Desktop Entry]
+        Name=Image Viewer
+        Exec=image-viewer
+        Icon=image-viewer
+        Type=Application
+        Categories=Graphics;Viewer;
+        Comment=Simple and fast image viewer
+        EOF
+        
+        # 复制图标（如果有）或使用默认
+        touch AppDir/usr/share/icons/hicolor/256x256/apps/image-viewer.png
+        
+        # 创建 AppRun 链接
+        ln -s usr/bin/image-viewer AppDir/AppRun
+        
+        # 构建 AppImage
+        ./linuxdeploy.AppImage --appdir AppDir --output appimage
+        
+        # 重命名 AppImage
+        mv Image_Viewer*.AppImage image-viewer-${{ needs.changelog.outputs.version }}-linux-x86_64.AppImage || \
+        mv *.AppImage image-viewer-${{ needs.changelog.outputs.version }}-linux-x86_64.AppImage
+      continue-on-error: true
+    
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: image-viewer-${{ matrix.name }}
         path: |
           image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.${{ matrix.archive_ext }}
+          image-viewer-${{ needs.changelog.outputs.version }}-linux-x86_64.AppImage
           *.dmg
 
   build-msi:

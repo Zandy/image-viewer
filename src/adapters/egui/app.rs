@@ -14,6 +14,7 @@ use crate::core::ports::AppConfig;
 use crate::core::ports::FileDialogPort;
 use crate::core::use_cases::{AppState, GalleryState, ImageViewerService, ViewState};
 use crate::info_panel::InfoPanel;
+use crate::clipboard::ClipboardManager;
 
 /// Egui 应用程序适配器
 pub struct EguiApp {
@@ -21,6 +22,7 @@ pub struct EguiApp {
     viewer_widget: ViewerWidget,
     gallery_widget: GalleryWidget,
     info_panel: InfoPanel,
+    clipboard_manager: ClipboardManager,
     show_about: bool,
     show_shortcuts: bool,
     pending_files: Vec<PathBuf>,
@@ -33,6 +35,8 @@ pub struct EguiApp {
     about_window_pos: Option<egui::Pos2>,
     /// 快捷键帮助窗口位置
     shortcuts_window_pos: Option<egui::Pos2>,
+    /// 右键菜单最后一次操作结果
+    last_context_menu_result: Option<String>,
 }
 
 impl EguiApp {
@@ -64,6 +68,8 @@ impl EguiApp {
             current_image_path: None,
             about_window_pos,
             shortcuts_window_pos,
+            clipboard_manager: ClipboardManager::new(),
+            last_context_menu_result: None,
         }
     }
 
@@ -565,6 +571,72 @@ impl EguiApp {
         }
     }
 
+    /// 渲染右键菜单 (F-106, F-107)
+    fn render_context_menu(&mut self, ctx: &Context, path: &std::path::Path) {
+        // 使用 Area 创建右键点击检测区域（避开顶部菜单栏）
+        let menu_bar_height = 30.0;
+        let available_rect = ctx.screen_rect();
+        let response = egui::Area::new(egui::Id::new("viewer_context_menu_area"))
+            .fixed_pos(egui::pos2(available_rect.min.x, available_rect.min.y + menu_bar_height))
+            .interactable(true)
+            .show(ctx, |ui| {
+                let size = egui::vec2(available_rect.width(), available_rect.height() - menu_bar_height);
+                ui.allocate_response(size, egui::Sense::click())
+            })
+            .response;
+        
+        response.context_menu(|ui: &mut egui::Ui| {
+            ui.set_min_width(150.0);
+            
+            let has_image = true; // 有图片
+            let clipboard_available = self.clipboard_manager.is_available();
+            
+            // 复制图片
+            ui.add_enabled_ui(has_image && clipboard_available, |ui| {
+                if ui.button("📋 复制图片").clicked() {
+                    match self.clipboard_manager.copy_image_from_file(path) {
+                        Ok(_) => {
+                            self.last_context_menu_result = Some("图片已复制".to_string());
+                        }
+                        Err(e) => {
+                            self.last_context_menu_result = Some(format!("复制失败: {}", e));
+                        }
+                    }
+                    ui.close_menu();
+                }
+            });
+            
+            // 复制文件路径
+            ui.add_enabled_ui(has_image && clipboard_available, |ui| {
+                if ui.button("📂 复制文件路径").clicked() {
+                    match self.clipboard_manager.copy_image_path(path) {
+                        Ok(_) => {
+                            self.last_context_menu_result = Some("路径已复制".to_string());
+                        }
+                        Err(e) => {
+                            self.last_context_menu_result = Some(format!("复制失败: {}", e));
+                        }
+                    }
+                    ui.close_menu();
+                }
+            });
+            
+            ui.separator();
+            
+            // 在文件夹中显示
+            if ui.button("📁 在文件夹中显示").clicked() {
+                let _ = ClipboardManager::show_in_folder(path);
+                ui.close_menu();
+            }
+            
+            // 显示上次操作结果
+            if let Some(ref result) = self.last_context_menu_result {
+                ui.separator();
+                ui.label(egui::RichText::new(result).size(11.0).color(ui.visuals().weak_text_color()));
+            }
+        });
+    }
+
     /// 悬停菜单按钮
     fn hover_menu_button(ui: &mut egui::Ui, title: &str, add_contents: impl FnOnce(&mut egui::Ui)) {
         use egui::Id;
@@ -819,6 +891,15 @@ impl eframe::App for EguiApp {
                     .view_use_case
                     .open_image(&path, &mut state.view);
             });
+        }
+        
+        // 渲染右键菜单（仅在查看器模式下）
+        if let Ok(state) = self.service.get_state() {
+            if state.view.view_mode == ViewMode::Viewer {
+                if let Some(ref image) = state.view.current_image {
+                    self.render_context_menu(ctx, image.path());
+                }
+            }
         }
         
         // 渲染拖拽覆盖层（在内容之后，但在菜单之前）

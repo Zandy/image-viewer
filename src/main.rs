@@ -106,7 +106,7 @@ fn run_app() -> Result<()> {
         }
     };
 
-    // 加载配置
+    // 加载配置（只加载一次）
     info!("[STEP 5] 加载配置...");
     log_to_file("[STEP 5] 加载配置");
     let config = match storage.load_config() {
@@ -121,7 +121,7 @@ fn run_app() -> Result<()> {
             AppConfig::default()
         }
     };
-
+    
     // 创建用例
     info!("[STEP 6] 创建用例...");
     log_to_file("[STEP 6] 创建用例");
@@ -138,10 +138,10 @@ fn run_app() -> Result<()> {
         config_use_case,
     ));
 
-    // 初始化配置
+    // 初始化配置（使用已加载的配置，避免重复加载）
     info!("[STEP 8] 初始化服务...");
     log_to_file("[STEP 8] 初始化服务");
-    service.initialize()?;
+    service.initialize(Some(config.clone()))?;
 
     // 如果有初始路径，加载它
     if let Some(ref path) = initial_path {

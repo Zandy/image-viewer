@@ -263,12 +263,10 @@ impl EguiApp {
         if ctx.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
             let mut new_index: Option<usize> = None;
             let _ = self.service.update_state(|state| {
-                if state.view.view_mode == ViewMode::Viewer {
-                    new_index = self.service.navigate_use_case.navigate(
-                        &mut state.gallery,
-                        crate::core::domain::NavigationDirection::Previous,
-                    );
-                }
+                new_index = self.service.navigate_use_case.navigate(
+                    &mut state.gallery,
+                    crate::core::domain::NavigationDirection::Previous,
+                );
             });
             
             // 导航后加载选中的图片
@@ -290,12 +288,10 @@ impl EguiApp {
         if ctx.input(|i| i.key_pressed(egui::Key::ArrowRight)) {
             let mut new_index: Option<usize> = None;
             let _ = self.service.update_state(|state| {
-                if state.view.view_mode == ViewMode::Viewer {
-                    new_index = self.service.navigate_use_case.navigate(
-                        &mut state.gallery,
-                        crate::core::domain::NavigationDirection::Next,
-                    );
-                }
+                new_index = self.service.navigate_use_case.navigate(
+                    &mut state.gallery,
+                    crate::core::domain::NavigationDirection::Next,
+                );
             });
             
             // 导航后加载选中的图片
@@ -752,21 +748,47 @@ impl EguiApp {
 
                 Self::hover_menu_button(ui, "图片", |ui| {
                     if ui.button("上一张 (左箭头)").clicked() {
+                        let mut new_index: Option<usize> = None;
                         let _ = self.service.update_state(|state| {
-                            self.service.navigate_use_case.navigate(
+                            new_index = self.service.navigate_use_case.navigate(
                                 &mut state.gallery,
                                 crate::core::domain::NavigationDirection::Previous,
                             );
                         });
+                        // 导航后加载选中的图片
+                        if let Some(index) = new_index {
+                            if let Ok(state) = self.service.get_state() {
+                                if let Some(image) = state.gallery.gallery.get_image(index) {
+                                    let path = image.path().to_path_buf();
+                                    self.load_and_set_image(ctx, &path);
+                                    let _ = self.service.update_state(|state| {
+                                        let _ = self.service.view_use_case.open_image(&path, &mut state.view);
+                                    });
+                                }
+                            }
+                        }
                         ui.close_menu();
                     }
                     if ui.button("下一张 (右箭头)").clicked() {
+                        let mut new_index: Option<usize> = None;
                         let _ = self.service.update_state(|state| {
-                            self.service.navigate_use_case.navigate(
+                            new_index = self.service.navigate_use_case.navigate(
                                 &mut state.gallery,
                                 crate::core::domain::NavigationDirection::Next,
                             );
                         });
+                        // 导航后加载选中的图片
+                        if let Some(index) = new_index {
+                            if let Ok(state) = self.service.get_state() {
+                                if let Some(image) = state.gallery.gallery.get_image(index) {
+                                    let path = image.path().to_path_buf();
+                                    self.load_and_set_image(ctx, &path);
+                                    let _ = self.service.update_state(|state| {
+                                        let _ = self.service.view_use_case.open_image(&path, &mut state.view);
+                                    });
+                                }
+                            }
+                        }
                         ui.close_menu();
                     }
                     ui.separator();

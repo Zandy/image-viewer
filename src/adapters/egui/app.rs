@@ -13,12 +13,14 @@ use crate::core::domain::ViewMode;
 use crate::core::ports::AppConfig;
 use crate::core::ports::FileDialogPort;
 use crate::core::use_cases::{AppState, GalleryState, ImageViewerService, ViewState};
+use crate::info_panel::InfoPanel;
 
 /// Egui 应用程序适配器
 pub struct EguiApp {
     service: Arc<ImageViewerService>,
     viewer_widget: ViewerWidget,
     gallery_widget: GalleryWidget,
+    info_panel: InfoPanel,
     show_about: bool,
     show_shortcuts: bool,
     pending_files: Vec<PathBuf>,
@@ -51,6 +53,7 @@ impl EguiApp {
             service,
             viewer_widget: ViewerWidget::default(),
             gallery_widget: GalleryWidget::default(),
+            info_panel: InfoPanel::new(),
             show_about: false,
             show_shortcuts: false,
             pending_files: Vec::new(),
@@ -179,25 +182,61 @@ impl EguiApp {
 
         // 箭头键导航
         if ctx.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
+            let mut new_index: Option<usize> = None;
             let _ = self.service.update_state(|state| {
                 if state.view.view_mode == ViewMode::Viewer {
-                    self.service.navigate_use_case.navigate(
+                    new_index = self.service.navigate_use_case.navigate(
                         &mut state.gallery,
                         crate::core::domain::NavigationDirection::Previous,
                     );
                 }
             });
+            
+            // 导航后加载选中的图片
+            if let Some(index) = new_index {
+                if let Ok(state) = self.service.get_state() {
+                    if let Some(image) = state.gallery.gallery.get_image(index) {
+                        let path = image.path().to_path_buf();
+                        // 加载纹理
+                        if let Ok(texture) = self.load_image_texture(ctx, &path) {
+                            self.current_texture = Some((path.to_string_lossy().to_string(), texture));
+                        }
+                        // 打开图片
+                        let _ = self.service.update_state(|state| {
+                            let _ = self.service.view_use_case.open_image(&path, &mut state.view);
+                        });
+                    }
+                }
+            }
         }
 
         if ctx.input(|i| i.key_pressed(egui::Key::ArrowRight)) {
+            let mut new_index: Option<usize> = None;
             let _ = self.service.update_state(|state| {
                 if state.view.view_mode == ViewMode::Viewer {
-                    self.service.navigate_use_case.navigate(
+                    new_index = self.service.navigate_use_case.navigate(
                         &mut state.gallery,
                         crate::core::domain::NavigationDirection::Next,
                     );
                 }
             });
+            
+            // 导航后加载选中的图片
+            if let Some(index) = new_index {
+                if let Ok(state) = self.service.get_state() {
+                    if let Some(image) = state.gallery.gallery.get_image(index) {
+                        let path = image.path().to_path_buf();
+                        // 加载纹理
+                        if let Ok(texture) = self.load_image_texture(ctx, &path) {
+                            self.current_texture = Some((path.to_string_lossy().to_string(), texture));
+                        }
+                        // 打开图片
+                        let _ = self.service.update_state(|state| {
+                            let _ = self.service.view_use_case.open_image(&path, &mut state.view);
+                        });
+                    }
+                }
+            }
         }
 
         // F11 - 全屏
@@ -402,6 +441,33 @@ impl EguiApp {
         }
     }
 
+    /// 渲染信息面板 (F-104)
+    fn render_info_panel(&mut self, ctx: &Context) {
+        // 同步配置中的 show_info_panel 状态
+        if let Ok(state) = self.service.get_state() {
+            let config_visible = state.config.viewer.show_info_panel;
+            if config_visible != self.info_panel.is_visible() {
+                if config_visible {
+                    self.info_panel.show();
+                } else {
+                    self.info_panel.hide();
+                }
+            }
+            
+            // 如果有当前图片，更新信息面板
+            if let Some(ref image) = state.view.current_image {
+                self.info_panel.set_image_info(
+                    image.path(),
+                    (image.metadata().width, image.metadata().height),
+                    &format!("{:?}", image.metadata().format),
+                );
+            }
+        }
+        
+        // 渲染信息面板
+        self.info_panel.ui(ctx);
+    }
+
     /// 悬停菜单按钮
     fn hover_menu_button(ui: &mut egui::Ui, title: &str, add_contents: impl FnOnce(&mut egui::Ui)) {
         use egui::Id;
@@ -545,6 +611,9 @@ impl EguiApp {
 
 impl eframe::App for EguiApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+        // 每帧禁用 UI 缩放，确保 Ctrl++ 只缩放图片而不是整个界面
+        ctx.set_pixels_per_point(1.0);
+        
         // 处理待处理文件
         self.process_pending_files(ctx);
 
@@ -611,6 +680,9 @@ impl eframe::App for EguiApp {
 
         // 渲染快捷键帮助
         self.render_shortcuts_help(ctx);
+        
+        // 渲染信息面板 (F-104)
+        self.render_info_panel(ctx);
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {

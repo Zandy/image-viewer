@@ -288,7 +288,7 @@ impl InfoPanel {
         ui.add_space(8.0);
 
         // 图像信息部分
-        ui.collapsing("🖼️ 图像信息", |ui| {
+        ui.collapsing("🖼 图像信息", |ui| {
             render_label_value(ui, "格式:", &info.format);
             render_label_value(ui, "尺寸:", &format!("{} x {} 像素", info.width, info.height));
             let mp = (info.width as f64 * info.height as f64) / 1_000_000.0;

@@ -552,9 +552,17 @@ impl EguiApp {
     fn render_info_panel(&mut self, ctx: &Context) {
         // 同步配置中的 show_info_panel 状态
         if let Ok(state) = self.service.get_state() {
+            // 程序启动时强制隐藏信息面板（即使配置为true）
+            // 用户按 F 键时再切换显示
             let config_visible = state.config.viewer.show_info_panel;
-            if config_visible != self.info_panel.is_visible() {
-                if config_visible {
+            
+            // 只有在用户已打开过图片后才根据配置显示
+            let has_image = state.view.current_image.is_some();
+            
+            let should_show = config_visible && has_image;
+            
+            if should_show != self.info_panel.is_visible() {
+                if should_show {
                     self.info_panel.show();
                 } else {
                     self.info_panel.hide();

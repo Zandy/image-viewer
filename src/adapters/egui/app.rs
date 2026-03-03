@@ -267,26 +267,57 @@ impl EguiApp {
             }
         }
 
-        // Ctrl++ 放大 - 使用更小的步进值更丝滑
+        // Ctrl++ 放大 - 使用 v0.2.0 的 zoom_step (1.25)
         if ctx.input(|i| i.key_pressed(egui::Key::PlusEquals) && i.modifiers.ctrl) {
             let _ = self.service.update_state(|state| {
-                let max = state.config.viewer.max_scale;
-                // 直接操作 scale 而不是通过 use_case，更直接响应
+                if !state.view.user_zoomed {
+                    state.view.scale = crate::core::domain::Scale::new(
+                        1.0,
+                        state.config.viewer.min_scale,
+                        state.config.viewer.max_scale
+                    );
+                    state.view.user_zoomed = true;
+                }
                 let current = state.view.scale.value();
-                let new_scale = (current * 1.1).min(max);  // 10% 步进，更平滑
-                state.view.scale = crate::core::domain::Scale::new(new_scale, state.config.viewer.min_scale, max);
-                state.view.user_zoomed = true;
+                let new_scale = (current * 1.25).min(state.config.viewer.max_scale);
+                state.view.scale = crate::core::domain::Scale::new(
+                    new_scale,
+                    state.config.viewer.min_scale,
+                    state.config.viewer.max_scale
+                );
             });
         }
 
-        // Ctrl+- 缩小 - 使用更小的步进值更丝滑
+        // Ctrl+- 缩小 - 使用 v0.2.0 的 zoom_step (1.25)
         if ctx.input(|i| i.key_pressed(egui::Key::Minus) && i.modifiers.ctrl) {
             let _ = self.service.update_state(|state| {
-                let min = state.config.viewer.min_scale;
-                // 直接操作 scale 而不是通过 use_case，更直接响应
+                if !state.view.user_zoomed {
+                    state.view.scale = crate::core::domain::Scale::new(
+                        1.0,
+                        state.config.viewer.min_scale,
+                        state.config.viewer.max_scale
+                    );
+                    state.view.user_zoomed = true;
+                }
                 let current = state.view.scale.value();
-                let new_scale = (current * 0.9).max(min);  // 10% 步进，更平滑
-                state.view.scale = crate::core::domain::Scale::new(new_scale, min, state.config.viewer.max_scale);
+                let new_scale = (current / 1.25).max(state.config.viewer.min_scale);
+                state.view.scale = crate::core::domain::Scale::new(
+                    new_scale,
+                    state.config.viewer.min_scale,
+                    state.config.viewer.max_scale
+                );
+            });
+        }
+
+        // Ctrl+0 - 重置缩放（与 v0.2.0 一致）
+        if ctx.input(|i| i.key_pressed(egui::Key::Num0) && i.modifiers.ctrl) {
+            let _ = self.service.update_state(|state| {
+                state.view.scale = crate::core::domain::Scale::new(
+                    1.0,
+                    state.config.viewer.min_scale,
+                    state.config.viewer.max_scale
+                );
+                state.view.offset = crate::core::domain::Position::default();
                 state.view.user_zoomed = true;
             });
         }
@@ -298,13 +329,15 @@ impl EguiApp {
             });
         }
         
-        // Ctrl+1 原始尺寸（1:1）
+        // Ctrl+1 - 重置缩放（与 v0.2.0 一致）
         if ctx.input(|i| i.key_pressed(egui::Key::Num1) && i.modifiers.ctrl) {
             let _ = self.service.update_state(|state| {
-                // 设置为 1.0（100%）原始尺寸
-                let min = state.config.viewer.min_scale;
-                let max = state.config.viewer.max_scale;
-                state.view.scale = crate::core::domain::Scale::new(1.0, min, max);
+                state.view.scale = crate::core::domain::Scale::new(
+                    1.0,
+                    state.config.viewer.min_scale,
+                    state.config.viewer.max_scale
+                );
+                state.view.offset = crate::core::domain::Position::default();
                 state.view.user_zoomed = true;
             });
         }

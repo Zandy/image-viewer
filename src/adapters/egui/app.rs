@@ -267,23 +267,27 @@ impl EguiApp {
             }
         }
 
-        // Ctrl++ 放大
+        // Ctrl++ 放大 - 使用更小的步进值更丝滑
         if ctx.input(|i| i.key_pressed(egui::Key::PlusEquals) && i.modifiers.ctrl) {
             let _ = self.service.update_state(|state| {
                 let max = state.config.viewer.max_scale;
-                self.service
-                    .view_use_case
-                    .zoom_in(&mut state.view, 1.25, max);
+                // 直接操作 scale 而不是通过 use_case，更直接响应
+                let current = state.view.scale.value();
+                let new_scale = (current * 1.1).min(max);  // 10% 步进，更平滑
+                state.view.scale = crate::core::domain::Scale::new(new_scale, state.config.viewer.min_scale, max);
+                state.view.user_zoomed = true;
             });
         }
 
-        // Ctrl+- 缩小
+        // Ctrl+- 缩小 - 使用更小的步进值更丝滑
         if ctx.input(|i| i.key_pressed(egui::Key::Minus) && i.modifiers.ctrl) {
             let _ = self.service.update_state(|state| {
                 let min = state.config.viewer.min_scale;
-                self.service
-                    .view_use_case
-                    .zoom_out(&mut state.view, 1.25, min);
+                // 直接操作 scale 而不是通过 use_case，更直接响应
+                let current = state.view.scale.value();
+                let new_scale = (current * 0.9).max(min);  // 10% 步进，更平滑
+                state.view.scale = crate::core::domain::Scale::new(new_scale, min, state.config.viewer.max_scale);
+                state.view.user_zoomed = true;
             });
         }
 

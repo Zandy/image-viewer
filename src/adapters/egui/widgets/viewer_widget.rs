@@ -52,17 +52,17 @@ impl ViewerWidget {
                 // 累积滚轮增量
                 self.zoom_accumulator += scroll_delta;
                 
-                // 每累积一定量就触发一次缩放
-                const ZOOM_THRESHOLD: f32 = 10.0;
+                // 每累积一定量就触发一次缩放 - 降低阈值使其更灵敏
+                const ZOOM_THRESHOLD: f32 = 5.0;  // 从 10.0 改为 5.0
                 if self.zoom_accumulator.abs() >= ZOOM_THRESHOLD {
-                    // 根据方向确定缩放因子
-                    zoom_delta = if self.zoom_accumulator > 0.0 { 1.1 } else { 0.9 };
+                    // 根据方向确定缩放因子 - 使用更小的步进
+                    zoom_delta = if self.zoom_accumulator > 0.0 { 1.05 } else { 0.95 };  // 从 1.1/0.9 改为 1.05/0.95
                     self.zoom_accumulator = 0.0; // 重置累积器
                 }
             } else {
                 // 没有滚轮输入时，逐渐减少累积值（平滑过渡）
-                self.zoom_accumulator *= 0.9;
-                if self.zoom_accumulator.abs() < 1.0 {
+                self.zoom_accumulator *= 0.8;  // 衰减更快
+                if self.zoom_accumulator.abs() < 0.5 {  // 阈值更低
                     self.zoom_accumulator = 0.0;
                 }
             }

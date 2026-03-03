@@ -199,14 +199,19 @@ impl EguiApp {
                 }
                 
                 if !image_paths.is_empty() {
-                    // 添加所有文件到画廊（与 v0.2.0 一致）
+                    // 只添加用户拖放的文件到画廊（与 v0.2.0 一致）
+                    // 不加载整个目录，只加载用户打开的文件
                     for path in &image_paths {
                         let _ = self.service.update_state(|state| {
-                            self.service.navigate_use_case.load_directory(
-                                &mut state.gallery,
-                                &crate::infrastructure::FsImageSource::new(),
-                                path.parent().unwrap_or(path),
+                            // 添加单个文件到画廊（不加载整个目录）
+                            let image = crate::core::domain::Image::new(
+                                path.file_stem()
+                                    .and_then(|s| s.to_str())
+                                    .unwrap_or("unknown")
+                                    .to_string(),
+                                path.clone(),
                             );
+                            state.gallery.gallery.add_image(image);
                         });
                     }
                     

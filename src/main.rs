@@ -106,6 +106,8 @@ fn main() -> Result<()> {
         "Image Viewer",
         native_options,
         Box::new(move |cc| {
+            // 禁用 UI 缩放，防止 Ctrl++ 缩放整个界面
+            cc.egui_ctx.set_pixels_per_point(1.0);
             setup_fonts(&cc.egui_ctx);
             Box::new(EguiApp::new(cc, service_clone))
         }),

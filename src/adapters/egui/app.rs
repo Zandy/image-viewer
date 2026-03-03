@@ -153,13 +153,37 @@ impl EguiApp {
         // 检查是否有拖拽悬停
         self.drag_hovering = ctx.input(|i| !i.raw.hovered_files.is_empty());
 
-        // 处理释放的文件
+        // 处理释放的文件 - 与 v0.2.0 一致：添加所有文件到画廊，打开第一张
         ctx.input(|i| {
-            for file in &i.raw.dropped_files {
-                if let Some(path) = file.path.clone() {
-                    if is_image_file(&path) {
-                        self.pending_files.push(path);
+            if !i.raw.dropped_files.is_empty() {
+                let mut image_paths: Vec<PathBuf> = Vec::new();
+                
+                for file in &i.raw.dropped_files {
+                    if let Some(path) = file.path.clone() {
+                        if is_image_file(&path) {
+                            image_paths.push(path);
+                        }
                     }
+                }
+                
+                if !image_paths.is_empty() {
+                    // 添加所有文件到画廊（与 v0.2.0 一致）
+                    for path in &image_paths {
+                        let _ = self.service.update_state(|state| {
+                            self.service.navigate_use_case.load_directory(
+                                &mut state.gallery,
+                                &crate::infrastructure::FsImageSource::new(),
+                                path.parent().unwrap_or(path),
+                            );
+                        });
+                    }
+                    
+                    // 打开第一张图片
+                    if let Some(first_path) = image_paths.first() {
+                        self.pending_files.push(first_path.clone());
+                    }
+                    
+                    self.drag_hovering = false;
                 }
             }
         });

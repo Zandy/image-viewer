@@ -74,6 +74,7 @@ pub struct GalleryLayout {
 pub struct ViewerSettings {
     pub background_color: Color,
     pub fit_to_window: bool,
+    #[serde(default)]
     pub show_info_panel: bool,
     pub min_scale: f32,
     pub max_scale: f32,

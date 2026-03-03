@@ -375,8 +375,14 @@ impl ImageViewerService {
     }
 
     /// 初始化配置
-    pub fn initialize(&self) -> Result<()> {
-        let config = self.config_use_case.load_config()?;
+    /// 如果传入了 config 则使用它，否则从存储加载
+    pub fn initialize(&self, config: Option<AppConfig>) -> Result<()> {
+        let config = if let Some(cfg) = config {
+            cfg
+        } else {
+            self.config_use_case.load_config()?
+        };
+        
         let mut state = self
             .state
             .lock()

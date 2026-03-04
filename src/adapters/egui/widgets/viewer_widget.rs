@@ -4,6 +4,11 @@ use crate::core::domain::ViewerSettings;
 use crate::core::use_cases::ViewState;
 use egui::{Color32, Rect, Sense, Ui, Vec2};
 
+/// 简单的日志函数
+fn log_debug(msg: &str) {
+    let _ = std::fs::write("viewer-debug.log", msg);
+}
+
 /// 查看器组件
 #[derive(Default)]
 pub struct ViewerWidget {
@@ -24,7 +29,7 @@ impl ViewerWidget {
         settings: &ViewerSettings,
         texture: Option<&(String, egui::TextureHandle)>,
     ) -> (bool, f32, Option<egui::Pos2>, Option<Vec2>) {
-        eprintln!("[DEBUG] ViewerWidget::ui called, view_mode={:?}, has_image={}", state.view_mode, state.current_image.is_some());
+        log_debug(&format!("ViewerWidget::ui called, view_mode={:?}, has_image={}", state.view_mode, state.current_image.is_some()));
         
         let available_size = ui.available_size();
         let bg_color = Color32::from_rgb(

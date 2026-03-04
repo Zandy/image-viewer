@@ -659,42 +659,7 @@ impl EguiApp {
         }
     }
 
-    /// 悬停菜单按钮
-    fn hover_menu_button(ui: &mut egui::Ui, title: &str, add_contents: impl FnOnce(&mut egui::Ui)) {
-        use egui::Id;
 
-        let menu_id = Id::new(format!("menu_{}", title));
-        let active_menu_id = Id::new("active_menu");
-
-        let active_menu = ui.data(|d| d.get_temp::<Id>(active_menu_id));
-        let is_menu_open = active_menu == Some(menu_id);
-
-        let menu_btn = ui.menu_button(title, |ui| {
-            add_contents(ui);
-        });
-
-        if menu_btn.response.hovered() && !is_menu_open {
-            ui.data_mut(|d| d.insert_temp(active_menu_id, menu_id));
-        }
-
-        if menu_btn.response.clicked() {
-            if is_menu_open {
-                ui.data_mut(|d| d.insert_temp(active_menu_id, Id::NULL));
-            } else {
-                ui.data_mut(|d| d.insert_temp(active_menu_id, menu_id));
-            }
-        }
-
-        if ui.input(|i| i.pointer.any_click()) && !menu_btn.response.clicked() {
-            let clicked_in_menu = menu_btn
-                .response
-                .rect
-                .contains(ui.input(|i| i.pointer.interact_pos()).unwrap_or_default());
-            if !clicked_in_menu {
-                ui.data_mut(|d| d.insert_temp(active_menu_id, Id::NULL));
-            }
-        }
-    }
 
     /// 渲染菜单栏
     fn render_menu_bar(&mut self, ctx: &Context) {
@@ -705,8 +670,8 @@ impl EguiApp {
         }
 
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                Self::hover_menu_button(ui, "文件", |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
+                ui.menu_button("文件", |ui| {
                     if ui.button("打开... (Ctrl+O)").clicked() {
                         self.handle_open_dialog();
                         ui.close();
@@ -717,7 +682,7 @@ impl EguiApp {
                     }
                 });
 
-                Self::hover_menu_button(ui, "视图", |ui| {
+                ui.menu_button("视图", |ui| {
                     if ui.button("图库").clicked() {
                         let _ = self.service.update_state(|state| {
                             state.view.view_mode = ViewMode::Gallery;
@@ -739,7 +704,7 @@ impl EguiApp {
                     }
                 });
 
-                Self::hover_menu_button(ui, "图片", |ui| {
+                ui.menu_button("图片", |ui| {
                     if ui.button("上一张 (左箭头)").clicked() {
                         let mut new_index: Option<usize> = None;
                         let _ = self.service.update_state(|state| {
@@ -844,7 +809,7 @@ impl EguiApp {
                     }
                 });
 
-                Self::hover_menu_button(ui, "帮助", |ui| {
+                ui.menu_button("帮助", |ui| {
                     if ui.button("快捷键帮助 (?)").clicked() {
                         self.shortcuts_help_panel.toggle();
                         ui.close();

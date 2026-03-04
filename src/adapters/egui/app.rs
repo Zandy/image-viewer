@@ -1058,8 +1058,10 @@ impl eframe::App for EguiApp {
             });
         }
         
-        // 修复问题3: 信息面板被遮挡 - 在 CentralPanel 之后渲染信息面板
-        // 这样信息面板会在上层显示，不会被图片遮挡
+        // 渲染菜单栏（最先渲染，确保在顶层，不被其他面板遮挡）
+        self.render_menu_bar(ctx);
+        
+        // 渲染信息面板（在菜单栏之后渲染，位置在图片右侧）
         self.render_info_panel(ctx);
         
         // 渲染右键菜单（仅在查看器模式下）
@@ -1071,11 +1073,8 @@ impl eframe::App for EguiApp {
             }
         }
         
-        // 渲染拖拽覆盖层（在内容之后，但在菜单之前）
+        // 渲染拖拽覆盖层
         self.render_drag_overlay(ctx);
-
-        // 渲染菜单栏（最后渲染，确保在顶层）
-        self.render_menu_bar(ctx);
 
         // 渲染关于窗口
         self.render_about_window(ctx);

@@ -968,12 +968,16 @@ impl eframe::App for EguiApp {
                     }
                 }
                 ViewMode::Viewer => {
+                    // 需要可变state来在同帧内更新offset
+                    let mut state = self.service.get_state().unwrap_or_default();
                     viewer_actions = self.viewer_widget.ui(
                         ui,
-                        &state.view,
+                        &mut state.view,
                         &state.config.viewer,
                         texture_ref,
                     );
+                    // 同步回state
+                    let _ = self.service.update_state(|s| *s = state);
                 }
             }
         });

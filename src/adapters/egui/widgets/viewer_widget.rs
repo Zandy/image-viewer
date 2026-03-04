@@ -20,7 +20,7 @@ impl ViewerWidget {
     pub fn ui(
         &mut self,
         ui: &mut Ui,
-        state: &ViewState,
+        state: &mut ViewState,
         settings: &ViewerSettings,
         texture: Option<&(String, egui::TextureHandle)>,
     ) -> (bool, f32, Option<egui::Pos2>, Option<Vec2>) {
@@ -40,9 +40,12 @@ impl ViewerWidget {
             i.pointer.button_double_clicked(egui::PointerButton::Primary)
         });
 
-        // 处理拖拽平移（左键拖拽）- 使用 response.drag_delta() 与 v0.2.0 一致
+        // 处理拖拽平移（左键拖拽）- 与 v0.2.0 一致：在同一帧内更新 offset
         let drag_delta = if response.dragged() {
             self.dragging = true;
+            // 与 v0.2.0 一致：直接在当前帧更新 offset
+            state.offset.x += response.drag_delta().x;
+            state.offset.y += response.drag_delta().y;
             response.drag_delta()
         } else {
             self.dragging = false;

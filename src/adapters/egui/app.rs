@@ -929,12 +929,19 @@ impl EguiApp {
 
 impl eframe::App for EguiApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
-        // 简单的日志函数
-        fn log_update(msg: &str) {
-            let _ = std::fs::write("update-debug.log", msg);
+        // 简单的日志函数（追加模式）
+        fn log_debug(msg: &str) {
+            use std::io::Write;
+            if let Ok(mut file) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("debug.log")
+            {
+                let _ = writeln!(file, "{}", msg);
+            }
         }
         
-        log_update("update() called");
+        log_debug("update() called");
         
         // 注意：不要每帧调用 set_pixels_per_point()，这会导致菜单抖动
         // set_pixels_per_point 应该在应用初始化时配置，而不是每帧
@@ -967,7 +974,14 @@ impl eframe::App for EguiApp {
             let mut state = self.service.get_state().unwrap_or_default();
             // 日志函数
             fn log_panel(msg: &str) {
-                let _ = std::fs::write("panel-debug.log", msg);
+                use std::io::Write;
+                if let Ok(mut file) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("debug.log")
+                {
+                    let _ = writeln!(file, "{}", msg);
+                }
             }
             log_panel(&format!("CentralPanel: view_mode={:?}", state.view.view_mode));
 

@@ -182,7 +182,6 @@ impl EguiApp {
             Ok((texture, width, height, rgba_data)) => {
                 self.current_texture = Some((path.to_string_lossy().to_string(), texture));
                 self.current_texture_data = Some((width, height, rgba_data));
-                self.current_image_path = Some(path.to_path_buf());
             }
             Err(_) => {
                 self.current_texture = None;
@@ -650,81 +649,14 @@ impl EguiApp {
         }
         
         // 渲染信息面板（与 v0.2.0 一致）
-        self.info_panel.ui(ctx);
-    }
+        let closed_by_user = self.info_panel.ui(ctx);
 
-    /// 渲染右键菜单 (F-106, F-107)
-    fn render_context_menu(&mut self, ctx: &Context, path: &std::path::Path) {
-        // 使用 Area 创建右键点击检测区域（避开顶部菜单栏）
-        let menu_bar_height = 30.0;
-        let available_rect = ctx.screen_rect();
-        let response = egui::Area::new(egui::Id::new("viewer_context_menu_area"))
-            .fixed_pos(egui::pos2(available_rect.min.x, available_rect.min.y + menu_bar_height))
-            .interactable(true)
-            .show(ctx, |ui| {
-                let size = egui::vec2(available_rect.width(), available_rect.height() - menu_bar_height);
-                ui.allocate_response(size, egui::Sense::click())
-            })
-            .response;
-        
-        response.context_menu(|ui: &mut egui::Ui| {
-            ui.set_min_width(150.0);
-            
-            let has_image = true; // 有图片
-            let clipboard_available = self.clipboard_manager.is_available();
-            
-            // 复制图片（使用已加载的 texture_data，与 v0.2.0 一致）
-            ui.add_enabled_ui(has_image && clipboard_available, |ui| {
-                if ui.button("📋 复制图片").clicked() {
-                    // 优先使用已加载的 RGBA 数据
-                    let copy_result = if let Some((width, height, ref data)) = self.current_texture_data {
-                        self.clipboard_manager.copy_image(data, width, height)
-                    } else {
-                        // 回退到从文件加载
-                        self.clipboard_manager.copy_image_from_file(path)
-                    };
-                    
-                    match copy_result {
-                        Ok(_) => {
-                            self.last_context_menu_result = Some("图片已复制".to_string());
-                        }
-                        Err(e) => {
-                            self.last_context_menu_result = Some(format!("复制失败: {}", e));
-                        }
-                    }
-                    ui.close_menu();
-                }
+        // 如果用户点击了信息面板右上角的关闭按钮，同步更新配置中的 show_info_panel
+        if closed_by_user {
+            let _ = self.service.update_state(|state| {
+                state.config.viewer.show_info_panel = false;
             });
-            
-            // 复制文件路径
-            ui.add_enabled_ui(has_image && clipboard_available, |ui| {
-                if ui.button("📂 复制文件路径").clicked() {
-                    match self.clipboard_manager.copy_image_path(path) {
-                        Ok(_) => {
-                            self.last_context_menu_result = Some("路径已复制".to_string());
-                        }
-                        Err(e) => {
-                            self.last_context_menu_result = Some(format!("复制失败: {}", e));
-                        }
-                    }
-                    ui.close_menu();
-                }
-            });
-            
-            ui.separator();
-            
-            // 在文件夹中显示
-            if ui.button("📁 在文件夹中显示").clicked() {
-                let _ = ClipboardManager::show_in_folder(path);
-                ui.close_menu();
-            }
-            
-            // 显示上次操作结果
-            if let Some(ref result) = self.last_context_menu_result {
-                ui.separator();
-                ui.label(egui::RichText::new(result).size(11.0).color(ui.visuals().weak_text_color()));
-            }
-        });
+        }
     }
 
     /// 悬停菜单按钮
@@ -960,8 +892,7 @@ impl eframe::App for EguiApp {
 
         // 渲染主内容（先于菜单栏，确保菜单在顶层）
         let mut clicked_image: Option<PathBuf> = None;
-        let mut viewer_actions: (bool, f32, Option<egui::Pos2>, Option<egui::Vec2>) = 
-            (false, 1.0, None, None);
+        let mut double_clicked_viewer = false;
 
         // 渲染菜单栏（与 v0.2.0 一致：在 CentralPanel 之前）
         self.render_menu_bar(ctx);
@@ -970,7 +901,7 @@ impl eframe::App for EguiApp {
         let texture_ref = self.current_texture.as_ref();
 
         // 渲染 CentralPanel（图片区域）
-        egui::CentralPanel::default().show(ctx, |ui| {
+        let central_response = egui::CentralPanel::default().show(ctx, |ui| {
             let mut state = self.service.get_state().unwrap_or_default();
             // 日志函数
             fn log_panel(msg: &str) {
@@ -994,7 +925,7 @@ impl eframe::App for EguiApp {
                     }
                 }
                 ViewMode::Viewer => {
-                    viewer_actions = self.viewer_widget.ui(
+                    double_clicked_viewer = self.viewer_widget.ui(
                         ui,
                         &mut state.view,
                         &state.config.viewer,
@@ -1007,58 +938,11 @@ impl eframe::App for EguiApp {
             let _ = self.service.update_state(|s| *s = state);
         });
         
-        // 处理查看器动作（双击全屏、滚轮缩放、拖拽平移）
-        let (double_clicked, zoom_factor, mouse_pos, drag_offset) = viewer_actions;
-        
-        // 处理双击全屏
-        if double_clicked {
+        // 处理双击全屏（拖拽和滚轮已在 viewer_widget 内处理）
+        if double_clicked_viewer {
             ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(
                 !ctx.input(|i| i.viewport().fullscreen.unwrap_or(false)),
             ));
-        }
-        
-        // 处理滚轮缩放（v0.2.0 方式：以鼠标为中心，调整 offset）
-        if zoom_factor != 1.0 {
-            let _ = self.service.update_state(|state| {
-                let current_scale = state.view.scale.value();
-                let min_scale = state.config.viewer.min_scale;
-                let max_scale = state.config.viewer.max_scale;
-                
-                // 计算新缩放值并限制范围
-                let new_scale = (current_scale * zoom_factor).clamp(min_scale, max_scale);
-                
-                // v0.2.0 关键：以鼠标位置为中心缩放，调整 offset
-                if let Some(mouse) = mouse_pos {
-                    // 获取窗口中心（用于计算相对位置）
-                    let rect = ctx.screen_rect();
-                    let center = rect.center();
-                    
-                    // 计算鼠标相对于中心的偏移（包含当前的 offset）
-                    let zoom_center = mouse - center;
-                    let current_offset = egui::Vec2::new(state.view.offset.x, state.view.offset.y);
-                    let zoom_center_relative = zoom_center - current_offset;
-                    
-                    // 根据缩放比例调整 offset，使鼠标指向的位置保持不动
-                    let scale_ratio = new_scale / current_scale;
-                    let new_offset = current_offset - zoom_center_relative * (scale_ratio - 1.0);
-                    
-                    state.view.offset.x = new_offset.x;
-                    state.view.offset.y = new_offset.y;
-                }
-                
-                // 更新缩放值
-                state.view.scale = crate::core::domain::Scale::new(new_scale, min_scale, max_scale);
-                state.view.user_zoomed = true;
-            });
-        }
-        
-        // 处理拖拽平移 - 需要根据缩放比例调整拖拽速度
-        if let Some(offset) = drag_offset {
-            let _ = self.service.update_state(|state| {
-                // 与 v0.2.0 一致：直接使用拖拽偏移量
-                state.view.offset.x += offset.x;
-                state.view.offset.y += offset.y;
-            });
         }
 
         // 处理画廊点击
@@ -1082,19 +966,84 @@ impl eframe::App for EguiApp {
                     .open_image(&path, &mut state.view, Some(win_w), Some(win_h), fit_to_window);
             });
         }
-        
+
         // 渲染信息面板（在 CentralPanel 之后，确保在图片上层）
         self.render_info_panel(ctx);
-        
-        // 渲染右键菜单（仅在查看器模式下）
+
+        // 右键菜单（仅在查看器模式下，在 CentralPanel 上触发，不再覆盖整个窗口）
         if let Ok(state) = self.service.get_state() {
             if state.view.view_mode == ViewMode::Viewer {
                 if let Some(ref image) = state.view.current_image {
-                    self.render_context_menu(ctx, image.path());
+                    let path = image.path().to_path_buf();
+                    central_response.response.context_menu(|ui: &mut egui::Ui| {
+                        ui.set_min_width(150.0);
+
+                        let has_image = true;
+                        let clipboard_available = self.clipboard_manager.is_available();
+
+                        // 复制图片（优先使用当前已加载的 RGBA 数据）
+                        ui.add_enabled_ui(has_image && clipboard_available, |ui| {
+                            if ui.button("📋 复制图片").clicked() {
+                                let copy_result =
+                                    if let Some((width, height, ref data)) = self.current_texture_data {
+                                        self.clipboard_manager.copy_image(data, width, height)
+                                    } else {
+                                        self.clipboard_manager.copy_image_from_file(&path)
+                                    };
+
+                                match copy_result {
+                                    Ok(_) => {
+                                        self.last_context_menu_result =
+                                            Some("图片已复制".to_string());
+                                    }
+                                    Err(e) => {
+                                        self.last_context_menu_result =
+                                            Some(format!("复制失败: {}", e));
+                                    }
+                                }
+                                ui.close_menu();
+                            }
+                        });
+
+                        // 复制文件路径
+                        ui.add_enabled_ui(has_image && clipboard_available, |ui| {
+                            if ui.button("📂 复制文件路径").clicked() {
+                                match self.clipboard_manager.copy_image_path(&path) {
+                                    Ok(_) => {
+                                        self.last_context_menu_result =
+                                            Some("路径已复制".to_string());
+                                    }
+                                    Err(e) => {
+                                        self.last_context_menu_result =
+                                            Some(format!("复制失败: {}", e));
+                                    }
+                                }
+                                ui.close_menu();
+                            }
+                        });
+
+                        ui.separator();
+
+                        // 在文件夹中显示
+                        if ui.button("📁 在文件夹中显示").clicked() {
+                            let _ = ClipboardManager::show_in_folder(&path);
+                            ui.close_menu();
+                        }
+
+                        // 显示上次操作结果
+                        if let Some(ref result) = self.last_context_menu_result {
+                            ui.separator();
+                            ui.label(
+                                egui::RichText::new(result)
+                                    .size(11.0)
+                                    .color(ui.visuals().weak_text_color()),
+                            );
+                        }
+                    });
                 }
             }
         }
-        
+
         // 渲染拖拽覆盖层
         self.render_drag_overlay(ctx);
 

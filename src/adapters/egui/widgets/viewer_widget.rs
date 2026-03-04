@@ -1,43 +1,26 @@
 //! Viewer Widget - 查看器 UI 组件
 
+use crate::core::domain::Scale;
 use crate::core::domain::ViewerSettings;
 use crate::core::use_cases::ViewState;
 use egui::{Color32, Rect, Sense, Ui, Vec2};
-
-/// 简单的日志函数（追加模式）
-fn log_debug(msg: &str) {
-    use std::io::Write;
-    if let Ok(mut file) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open("debug.log")
-    {
-        let _ = writeln!(file, "{}", msg);
-    }
-}
 
 /// 查看器组件
 #[derive(Default)]
 pub struct ViewerWidget {
     dragging: bool,
-    /// 累积的滚轮增量，用于平滑缩放
-    #[allow(dead_code)]
-    zoom_accumulator: f32,
 }
 
 impl ViewerWidget {
     /// 渲染查看器
-    /// 返回 (是否双击全屏, 缩放因子, 鼠标位置, 拖拽偏移量)
-    /// 缩放因子: 1.0 表示无变化, >1.0 放大, <1.0 缩小
+    /// 返回 是否双击全屏
     pub fn ui(
         &mut self,
         ui: &mut Ui,
         state: &mut ViewState,
         settings: &ViewerSettings,
         texture: Option<&(String, egui::TextureHandle)>,
-    ) -> (bool, f32, Option<egui::Pos2>, Option<Vec2>) {
-        log_debug(&format!("ViewerWidget::ui called, view_mode={:?}, has_image={}", state.view_mode, state.current_image.is_some()));
-        
+    ) -> bool {
         let available_size = ui.available_size();
         let bg_color = Color32::from_rgb(
             settings.background_color.r,
@@ -48,47 +31,51 @@ impl ViewerWidget {
         let (rect, response) = ui.allocate_exact_size(available_size, Sense::click_and_drag());
         ui.painter().rect_filled(rect, 0.0, bg_color);
 
-        // 处理双击全屏 - 修复: 使用 input().pointer 点击状态来检测双击
-        // double_clicked() 需要正确的 Sense 支持，click_and_drag 同时支持点击和拖拽
+        // 处理双击全屏
         let double_clicked = ui.input(|i| {
-            i.pointer.button_double_clicked(egui::PointerButton::Primary)
+            i.pointer
+                .button_double_clicked(egui::PointerButton::Primary)
         });
 
-        // 处理拖拽平移（左键拖拽）- 与 v0.2.0 一致：在同一帧内更新 offset
-        let dragged = response.dragged();
+        // 处理拖拽平移（左键拖拽）- 直接修改 state
         let hovered = response.hovered();
-        log_debug(&format!("drag: dragged={}, hovered={}", dragged, hovered));
-        
-        let drag_delta = if dragged {
+        if response.dragged() {
             self.dragging = true;
-            // 与 v0.2.0 一致：直接在当前帧更新 offset
             state.offset.x += response.drag_delta().x;
             state.offset.y += response.drag_delta().y;
-            log_debug(&format!("drag_offset: x={}, y={}", state.offset.x, state.offset.y));
-            response.drag_delta()
         } else {
             self.dragging = false;
-            Vec2::ZERO
-        };
+        }
 
-        // 处理滚轮缩放 - 与 v0.2.0 一致：以鼠标为中心
-        let mut zoom_factor = 1.0;
-        let mut mouse_pos: Option<egui::Pos2> = None;
-        
+        // 处理滚轮缩放 - 直接修改 state
         if hovered && !self.dragging {
-            // 与 v0.2.0 一致：直接使用 scroll_delta，不区分普通滚轮还是中键滚轮
             let scroll_delta = ui.input(|i| i.scroll_delta.y);
             if scroll_delta != 0.0 {
-                // 与 v0.2.0 相同的连续缩放公式
-                zoom_factor = 1.0 + scroll_delta * 0.001;
-                // 获取鼠标位置
-                mouse_pos = ui.input(|i| i.pointer.hover_pos());
+                let zoom_factor = 1.0 + scroll_delta * 0.001;
+                let current_scale = state.scale.value();
+                let new_scale =
+                    (current_scale * zoom_factor).clamp(settings.min_scale, settings.max_scale);
+
+                if new_scale != current_scale {
+                    // 以鼠标为中心缩放，调整 offset
+                    if let Some(mouse) = ui.input(|i| i.pointer.hover_pos()) {
+                        let center = rect.center();
+                        let current_offset = Vec2::new(state.offset.x, state.offset.y);
+                        let zoom_center = mouse - center - current_offset;
+                        let new_offset =
+                            current_offset - zoom_center * (new_scale / current_scale - 1.0);
+                        state.offset.x = new_offset.x;
+                        state.offset.y = new_offset.y;
+                    }
+                    state.scale = Scale::new(new_scale, settings.min_scale, settings.max_scale);
+                    state.user_zoomed = true;
+                }
             }
         }
 
         // 渲染图像或占位符
         if let Some(ref image) = state.current_image {
-            self.render_image(ui, image, state, rect, &response, settings, texture);
+            self.render_image(ui, image, state, rect, settings, texture);
         } else {
             // 无图像占位符
             ui.painter().text(
@@ -105,9 +92,8 @@ impl ViewerWidget {
 
         // 渲染尺寸指示器
         self.render_dimensions_indicator(ui, rect, state);
-        
-        let drag_offset = if drag_delta != Vec2::ZERO { Some(drag_delta) } else { None };
-        (double_clicked, zoom_factor, mouse_pos, drag_offset)
+
+        double_clicked
     }
 
     /// 渲染图像
@@ -117,7 +103,6 @@ impl ViewerWidget {
         image: &crate::core::domain::Image,
         state: &ViewState,
         rect: Rect,
-        _response: &egui::Response,
         _settings: &ViewerSettings,
         texture: Option<&(String, egui::TextureHandle)>,
     ) {
@@ -132,7 +117,7 @@ impl ViewerWidget {
             let center = rect.center() + Vec2::new(state.offset.x, state.offset.y);
             let image_rect = Rect::from_center_size(center, scaled_size);
 
-            // 设置裁剪区域（与 v0.2.0 一致），避免图片溢出到信息面板
+            // 设置裁剪区域
             ui.set_clip_rect(rect);
 
             // 渲染图像纹理

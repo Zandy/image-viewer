@@ -200,13 +200,16 @@ impl InfoPanel {
     }
 
     /// 渲染信息面板
-    pub fn ui(&mut self, ctx: &Context) {
+    /// 返回：如果本帧用户点击了右上角关闭按钮，则返回 true
+    pub fn ui(&mut self, ctx: &Context) -> bool {
         // 检查是否有新的EXIF数据
         self.check_exif_receiver();
 
         if !self.visible {
-            return;
+            return false;
         }
+
+        let mut closed_by_user = false;
 
         let panel_width = self.width;
 
@@ -215,7 +218,9 @@ impl InfoPanel {
             .min_width(200.0)
             .max_width(400.0)
             .default_width(panel_width)
-            .frame(Frame::side_top_panel(&ctx.style()).fill(Color32::from_rgba_premultiplied(35, 35, 40, 240)))
+            .frame(Frame::side_top_panel(&ctx.style()).fill(Color32::from_rgba_premultiplied(
+                35, 35, 40, 240,
+            )))
             .show(ctx, |ui| {
                 // 更新宽度
                 self.width = ui.available_width();
@@ -226,6 +231,7 @@ impl InfoPanel {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("×").clicked() {
                             self.hide();
+                            closed_by_user = true;
                         }
                     });
                 });
@@ -247,13 +253,16 @@ impl InfoPanel {
                         }
                     });
             });
+
+        closed_by_user
     }
 
     /// 渲染信息内容
     fn render_info_content(&self, ui: &mut egui::Ui, info: &ImageInfo) {
         // 文件信息部分
-        ui.collapsing("📁 文件信息", |ui| {
-            ui.indent("file_info", |ui| {
+        egui::CollapsingHeader::new("\u{1f4c1} 文件信息")
+            .default_open(true)
+            .show(ui, |ui| {
                 render_label_value(ui, "文件名:", &info.file_name);
                 render_label_value(ui, "路径:", &format_path(&info.path));
                 render_label_value(ui, "大小:", &format_file_size(info.file_size));
@@ -261,13 +270,13 @@ impl InfoPanel {
                     render_label_value(ui, "修改时间:", time);
                 }
             });
-        });
 
         ui.add_space(8.0);
 
         // 图像信息部分
-        ui.collapsing("🖼️ 图像信息", |ui| {
-            ui.indent("image_info", |ui| {
+        egui::CollapsingHeader::new("\u{1f5bc} 图像信息")
+            .default_open(true)
+            .show(ui, |ui| {
                 render_label_value(ui, "格式:", &info.format);
                 render_label_value(ui, "尺寸:", &format!("{} x {} 像素", info.width, info.height));
                 let mp = (info.width as f64 * info.height as f64) / 1_000_000.0;
@@ -279,13 +288,13 @@ impl InfoPanel {
                     render_label_value(ui, "色彩空间:", space);
                 }
             });
-        });
 
         ui.add_space(8.0);
 
         // EXIF信息部分
-        ui.collapsing("📷 EXIF 信息", |ui| {
-            ui.indent("exif_info", |ui| {
+        egui::CollapsingHeader::new("\u{1f4f7} EXIF 信息")
+            .default_open(true)
+            .show(ui, |ui| {
                 if self.loading_exif {
                     ui.horizontal(|ui| {
                         ui.spinner();
@@ -297,7 +306,6 @@ impl InfoPanel {
                     ui.label(RichText::new("无EXIF数据").color(Color32::GRAY).size(12.0));
                 }
             });
-        });
     }
 
     /// 渲染EXIF内容

@@ -54,22 +54,20 @@ impl ViewerWidget {
         let mut mouse_pos: Option<egui::Pos2> = None;
         
         if response.hovered() && !self.dragging {
-            // 修复问题2: 检查鼠标中键是否按下 + scroll_delta 是否有值
-            // 需要同时满足两个条件：1) 鼠标中键被按下 2) 有滚轮滚动
-            let middle_button_down = ui.input(|i| i.pointer.button_down(egui::PointerButton::Middle));
             let scroll_delta = ui.input(|i| i.scroll_delta.y);
+            let middle_button_down = ui.input(|i| i.pointer.button_down(egui::PointerButton::Middle));
             
-            // 普通滚轮或鼠标中键滚动都能触发缩放
-            if scroll_delta != 0.0 {
+            // 修复问题2: 支持普通滚轮和鼠标中键滚动缩放
+            // 当鼠标中键按下时，middle mouse drag 也会产生 scroll_delta
+            // 或者检查是否是鼠标中键产生的滚动
+            let is_middle_scroll = middle_button_down && scroll_delta != 0.0;
+            let is_regular_scroll = scroll_delta != 0.0 && !middle_button_down;
+            
+            if is_regular_scroll || is_middle_scroll {
                 // 与 v0.2.0 相同的连续缩放公式
                 zoom_factor = 1.0 + scroll_delta * 0.001;
                 // 获取鼠标位置
                 mouse_pos = ui.input(|i| i.pointer.hover_pos());
-                
-                // 如果是鼠标中键滚动，消耗该事件避免其他处理
-                if middle_button_down {
-                    // 鼠标中键滚动时只允许缩放，不允许拖拽
-                }
             }
         }
 

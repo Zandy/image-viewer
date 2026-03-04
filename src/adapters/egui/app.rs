@@ -1030,11 +1030,13 @@ impl eframe::App for EguiApp {
             });
         }
         
-        // 处理拖拽平移
+        // 处理拖拽平移 - 需要根据缩放比例调整拖拽速度
         if let Some(offset) = drag_offset {
             let _ = self.service.update_state(|state| {
-                state.view.offset.x += offset.x;
-                state.view.offset.y += offset.y;
+                // 使用缩放比例调整拖拽距离，确保在不同缩放级别下拖拽速度一致
+                let scale = state.view.scale.value();
+                state.view.offset.x += offset.x * scale;
+                state.view.offset.y += offset.y * scale;
             });
         }
 

@@ -31,7 +31,7 @@ impl ViewerWidget {
             settings.background_color.b,
         );
 
-        let (rect, response) = ui.allocate_exact_size(available_size, Sense::click_and_drag());
+        let (rect, response) = ui.allocate_exact_size(available_size, Sense::drag());
         ui.painter().rect_filled(rect, 0.0, bg_color);
 
         // 处理双击全屏 - 修复: 使用 input().pointer 点击状态来检测双击
@@ -54,16 +54,9 @@ impl ViewerWidget {
         let mut mouse_pos: Option<egui::Pos2> = None;
         
         if response.hovered() && !self.dragging {
+            // 与 v0.2.0 一致：直接使用 scroll_delta，不区分普通滚轮还是中键滚轮
             let scroll_delta = ui.input(|i| i.scroll_delta.y);
-            let middle_button_down = ui.input(|i| i.pointer.button_down(egui::PointerButton::Middle));
-            
-            // 修复问题2: 支持普通滚轮和鼠标中键滚动缩放
-            // 当鼠标中键按下时，middle mouse drag 也会产生 scroll_delta
-            // 或者检查是否是鼠标中键产生的滚动
-            let is_middle_scroll = middle_button_down && scroll_delta != 0.0;
-            let is_regular_scroll = scroll_delta != 0.0 && !middle_button_down;
-            
-            if is_regular_scroll || is_middle_scroll {
+            if scroll_delta != 0.0 {
                 // 与 v0.2.0 相同的连续缩放公式
                 zoom_factor = 1.0 + scroll_delta * 0.001;
                 // 获取鼠标位置

@@ -74,6 +74,12 @@ impl ViewerWidget {
         }
 
         // 渲染图像或占位符
+        // 右键菜单：使用 context_menu 回调，让父组件处理菜单内容
+        response.context_menu(|ui| {
+            ui.set_min_width(150.0);
+            ui.label("右键菜单功能需要通过父组件处理");
+        });
+        
         if let Some(ref image) = state.current_image {
             self.render_image(ui, image, state, rect, settings, texture);
         } else {

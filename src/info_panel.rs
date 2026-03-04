@@ -227,14 +227,11 @@ impl InfoPanel {
             return false;
         }
 
-        let panel_width = self.width;
-
-        // 使用 egui 存储来追踪关闭按钮点击状态
-        let close_btn_id = egui::Id::new("info_panel_close_btn");
+        let _panel_width = self.width;
         
-        // 检查上一帧是否有关闭按钮点击
-        let was_close_clicked = ctx.data(|d| d.get_temp::<bool>(close_btn_id)).unwrap_or(false);
-        ctx.data_mut(|d| d.insert_temp(close_btn_id, false));
+        // 修复问题4: 使用局部变量来追踪关闭按钮点击，而不是 ctx.data()
+        // 这样可以正确检测当前帧的点击事件
+        let mut close_clicked = false;
 
         // 预先提取需要的数据，避免借用冲突
         let current_info = self.current_info.clone();
@@ -256,8 +253,8 @@ impl InfoPanel {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("×").clicked() {
                             self.hide();
-                            // 存储点击状态供下一帧读取
-                            ctx.data_mut(|d| d.insert_temp(close_btn_id, true));
+                            // 直接设置局部变量，在当前帧立即生效
+                            close_clicked = true;
                         }
                     });
                 });
@@ -280,55 +277,53 @@ impl InfoPanel {
                     });
             });
             
-        was_close_clicked
+        close_clicked
     }
 
-    /// 渲染信息内容（静态版本，避免借用冲突）
+    /// 渲染信息内容（支持折叠/展开）
+    /// 修复问题5: 使用 ui.collapsing() 恢复折叠功能
     fn render_info_content_static(ui: &mut egui::Ui, info: &ImageInfo, loading_exif: bool) {
-        // 修复问题3: 默认展开3个部分
-        // 直接渲染所有内容，不使用折叠功能，确保用户始终能看到所有信息
-        
-        // 文件信息部分 - 默认展开
-        ui.label(RichText::new("📁 文件信息").size(14.0).strong());
-        ui.separator();
-        render_label_value(ui, "文件名:", &info.file_name);
-        render_label_value(ui, "路径:", &format_path(&info.path));
-        render_label_value(ui, "大小:", &format_file_size(info.file_size));
-        if let Some(ref time) = info.modified_time {
-            render_label_value(ui, "修改时间:", time);
-        }
+        // 文件信息部分 - 可折叠
+        ui.collapsing("📁 文件信息", |ui| {
+            render_label_value(ui, "文件名:", &info.file_name);
+            render_label_value(ui, "路径:", &format_path(&info.path));
+            render_label_value(ui, "大小:", &format_file_size(info.file_size));
+            if let Some(ref time) = info.modified_time {
+                render_label_value(ui, "修改时间:", time);
+            }
+        });
 
-        ui.add_space(12.0);
+        ui.add_space(8.0);
 
-        // 图像信息部分 - 默认展开
-        ui.label(RichText::new("🖼 图像信息").size(14.0).strong());
-        ui.separator();
-        render_label_value(ui, "格式:", &info.format);
-        render_label_value(ui, "尺寸:", &format!("{} x {} 像素", info.width, info.height));
-        let mp = (info.width as f64 * info.height as f64) / 1_000_000.0;
-        render_label_value(ui, "百万像素:", &format!("{:.2} MP", mp));
-        if let Some(depth) = info.bit_depth {
-            render_label_value(ui, "位深度:", &format!("{} bit", depth));
-        }
-        if let Some(ref space) = info.color_space {
-            render_label_value(ui, "色彩空间:", space);
-        }
+        // 图像信息部分 - 可折叠
+        ui.collapsing("🖼 图像信息", |ui| {
+            render_label_value(ui, "格式:", &info.format);
+            render_label_value(ui, "尺寸:", &format!("{} x {} 像素", info.width, info.height));
+            let mp = (info.width as f64 * info.height as f64) / 1_000_000.0;
+            render_label_value(ui, "百万像素:", &format!("{:.2} MP", mp));
+            if let Some(depth) = info.bit_depth {
+                render_label_value(ui, "位深度:", &format!("{} bit", depth));
+            }
+            if let Some(ref space) = info.color_space {
+                render_label_value(ui, "色彩空间:", space);
+            }
+        });
 
-        ui.add_space(12.0);
+        ui.add_space(8.0);
 
-        // EXIF信息部分 - 默认展开
-        ui.label(RichText::new("📷 EXIF 信息").size(14.0).strong());
-        ui.separator();
-        if loading_exif {
-            ui.horizontal(|ui| {
-                ui.spinner();
-                ui.label(RichText::new("正在加载EXIF数据...").color(Color32::GRAY).size(12.0));
-            });
-        } else if let Some(ref exif) = info.exif {
-            Self::render_exif_content_static(ui, exif);
-        } else {
-            ui.label(RichText::new("无EXIF数据").color(Color32::GRAY).size(12.0));
-        }
+        // EXIF信息部分 - 可折叠
+        ui.collapsing("📷 EXIF 信息", |ui| {
+            if loading_exif {
+                ui.horizontal(|ui| {
+                    ui.spinner();
+                    ui.label(RichText::new("正在加载EXIF数据...").color(Color32::GRAY).size(12.0));
+                });
+            } else if let Some(ref exif) = info.exif {
+                Self::render_exif_content_static(ui, exif);
+            } else {
+                ui.label(RichText::new("无EXIF数据").color(Color32::GRAY).size(12.0));
+            }
+        });
     }
 
     /// 渲染EXIF内容（静态版本）

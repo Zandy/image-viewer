@@ -222,8 +222,9 @@ impl InfoPanel {
                 35, 35, 40, 240,
             )))
             .show(ctx, |ui| {
-                // 更新宽度
-                self.width = ui.available_width();
+                // 更新宽度（限制在最小和最大之间）
+                let new_width = ui.available_width();
+                self.width = new_width.clamp(200.0, 400.0);
 
                 // 标题栏
                 ui.horizontal(|ui| {

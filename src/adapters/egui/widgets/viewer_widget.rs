@@ -4,9 +4,16 @@ use crate::core::domain::ViewerSettings;
 use crate::core::use_cases::ViewState;
 use egui::{Color32, Rect, Sense, Ui, Vec2};
 
-/// 简单的日志函数
+/// 简单的日志函数（追加模式）
 fn log_debug(msg: &str) {
-    let _ = std::fs::write("viewer-debug.log", msg);
+    use std::io::Write;
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("debug.log")
+    {
+        let _ = writeln!(file, "{}", msg);
+    }
 }
 
 /// 查看器组件

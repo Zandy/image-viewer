@@ -956,11 +956,12 @@ impl eframe::App for EguiApp {
         let mut viewer_actions: (bool, f32, Option<egui::Pos2>, Option<egui::Vec2>) = 
             (false, 1.0, None, None);
 
-        // 获取当前纹理引用
-        let texture_ref = self.current_texture.as_ref();
-
         // 渲染信息面板（在 CentralPanel 之前渲染，确保在顶层）
+        // 注意：这里需要在获取 texture_ref 之前调用，避免借用冲突
         self.render_info_panel(ctx);
+
+        // 获取当前纹理引用（在 render_info_panel 之后，避免借用冲突）
+        let texture_ref = self.current_texture.as_ref();
 
         egui::CentralPanel::default().show(ctx, |ui| {
             let state = self.service.get_state().unwrap_or_default();

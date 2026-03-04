@@ -88,6 +88,17 @@ impl EguiApp {
         let dialog = crate::infrastructure::RfdFileDialog::new();
         if let Some(paths) = dialog.open_files() {
             for path in paths {
+                // 添加到图库（与拖拽打开一致）
+                let _ = self.service.update_state(|state| {
+                    let image = crate::core::domain::Image::new(
+                        path.file_stem()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("unknown")
+                            .to_string(),
+                        path.clone(),
+                    );
+                    state.gallery.gallery.add_image(image);
+                });
                 self.pending_files.push(path);
             }
         }
@@ -292,24 +303,29 @@ impl EguiApp {
                 );
             });
             
-            // 导航后加载选中的图片
-            if let Some(index) = new_index {
-                if let Ok(state) = self.service.get_state() {
-                    if let Some(image) = state.gallery.gallery.get_image(index) {
-                        let path = image.path().to_path_buf();
-                        // 加载纹理和数据
-                        self.load_and_set_image(ctx, &path);
-                        // 获取窗口尺寸
-                        let rect = ctx.screen_rect();
-                        let win_w = rect.width();
-                        let win_h = rect.height();
-                        let fit_to_window = state.config.viewer.fit_to_window;
-                        // 打开图片
-                        let _ = self.service.update_state(|state| {
-                            let _ = self.service.view_use_case.open_image(&path, &mut state.view, Some(win_w), Some(win_h), fit_to_window);
-                        });
+            // 只有在查看器模式下才打开图片
+            // 在图库模式下只更新选中项，不打开图片
+            if let Ok(state) = self.service.get_state() {
+                if state.view.view_mode == ViewMode::Viewer {
+                    // 导航后加载选中的图片
+                    if let Some(index) = new_index {
+                        if let Some(image) = state.gallery.gallery.get_image(index) {
+                            let path = image.path().to_path_buf();
+                            // 加载纹理和数据
+                            self.load_and_set_image(ctx, &path);
+                            // 获取窗口尺寸
+                            let rect = ctx.screen_rect();
+                            let win_w = rect.width();
+                            let win_h = rect.height();
+                            let fit_to_window = state.config.viewer.fit_to_window;
+                            // 打开图片
+                            let _ = self.service.update_state(|state| {
+                                let _ = self.service.view_use_case.open_image(&path, &mut state.view, Some(win_w), Some(win_h), fit_to_window);
+                            });
+                        }
                     }
                 }
+                // 图库模式下只更新选中项，不需要额外操作
             }
         }
 
@@ -322,24 +338,29 @@ impl EguiApp {
                 );
             });
             
-            // 导航后加载选中的图片
-            if let Some(index) = new_index {
-                if let Ok(state) = self.service.get_state() {
-                    if let Some(image) = state.gallery.gallery.get_image(index) {
-                        let path = image.path().to_path_buf();
-                        // 加载纹理和数据
-                        self.load_and_set_image(ctx, &path);
-                        // 获取窗口尺寸
-                        let rect = ctx.screen_rect();
-                        let win_w = rect.width();
-                        let win_h = rect.height();
-                        let fit_to_window = state.config.viewer.fit_to_window;
-                        // 打开图片
-                        let _ = self.service.update_state(|state| {
-                            let _ = self.service.view_use_case.open_image(&path, &mut state.view, Some(win_w), Some(win_h), fit_to_window);
-                        });
+            // 只有在查看器模式下才打开图片
+            // 在图库模式下只更新选中项，不打开图片
+            if let Ok(state) = self.service.get_state() {
+                if state.view.view_mode == ViewMode::Viewer {
+                    // 导航后加载选中的图片
+                    if let Some(index) = new_index {
+                        if let Some(image) = state.gallery.gallery.get_image(index) {
+                            let path = image.path().to_path_buf();
+                            // 加载纹理和数据
+                            self.load_and_set_image(ctx, &path);
+                            // 获取窗口尺寸
+                            let rect = ctx.screen_rect();
+                            let win_w = rect.width();
+                            let win_h = rect.height();
+                            let fit_to_window = state.config.viewer.fit_to_window;
+                            // 打开图片
+                            let _ = self.service.update_state(|state| {
+                                let _ = self.service.view_use_case.open_image(&path, &mut state.view, Some(win_w), Some(win_h), fit_to_window);
+                            });
+                        }
                     }
                 }
+                // 图库模式下只更新选中项，不需要额外操作
             }
         }
 

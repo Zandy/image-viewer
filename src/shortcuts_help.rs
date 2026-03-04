@@ -65,11 +65,8 @@ impl ShortcutsHelpPanel {
         Window::new("⌨️ 快捷键帮助")
             .collapsible(false)
             .resizable(false)
-            .movable(false)
-            .default_pos([
-                screen_rect.center().x - 200.0,
-                screen_rect.center().y - 250.0,
-            ])
+            .movable(true)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .fixed_size([400.0, 500.0])
             .frame(
                 egui::Frame::window(&ctx.style())

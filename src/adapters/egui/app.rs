@@ -571,7 +571,8 @@ impl EguiApp {
         let mut window = egui::Window::new("关于")
             .collapsible(false)
             .resizable(false)
-            .fixed_size([300.0, 200.0]);
+            .fixed_size([300.0, 200.0])
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]);
         
         // 如果有保存的位置，使用它
         if let Some(pos) = self.about_window_pos {

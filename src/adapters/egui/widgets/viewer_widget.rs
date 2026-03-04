@@ -1,5 +1,6 @@
 //! Viewer Widget - 查看器 UI 组件
 
+use crate::clipboard::ClipboardManager;
 use crate::core::domain::Scale;
 use crate::core::domain::ViewerSettings;
 use crate::core::use_cases::ViewState;
@@ -9,6 +10,7 @@ use egui::{Color32, Rect, Sense, Ui, Vec2};
 #[derive(Default)]
 pub struct ViewerWidget {
     dragging: bool,
+    clipboard: ClipboardManager,
 }
 
 impl ViewerWidget {
@@ -74,10 +76,50 @@ impl ViewerWidget {
         }
 
         // 渲染图像或占位符
-        // 右键菜单：使用 context_menu 回调，让父组件处理菜单内容
+        // 右键菜单
         response.context_menu(|ui| {
             ui.set_min_width(150.0);
-            ui.label("右键菜单功能需要通过父组件处理");
+
+            let has_image = state.current_image.is_some();
+            let clipboard_available = self.clipboard.is_available();
+
+            // 复制图片
+            let copy_image_btn = ui.add_enabled(
+                has_image && clipboard_available,
+                egui::Button::new("📋 复制图片"),
+            );
+            if copy_image_btn.clicked() {
+                if let Some(ref image) = state.current_image {
+                    let path = image.path();
+                    let _ = self.clipboard.copy_image_from_file(path);
+                }
+                ui.close_menu();
+            }
+
+            // 复制文件路径
+            let copy_path_btn = ui.add_enabled(
+                has_image && clipboard_available,
+                egui::Button::new("📂 复制文件路径"),
+            );
+            if copy_path_btn.clicked() {
+                if let Some(ref image) = state.current_image {
+                    let path = image.path();
+                    let _ = self.clipboard.copy_image_path(path);
+                }
+                ui.close_menu();
+            }
+
+            ui.separator();
+
+            // 在文件夹中显示
+            let show_in_folder_btn = ui.add_enabled(has_image, egui::Button::new("📁 在文件夹中显示"));
+            if show_in_folder_btn.clicked() {
+                if let Some(ref image) = state.current_image {
+                    let path = image.path();
+                    let _ = ClipboardManager::show_in_folder(path);
+                }
+                ui.close_menu();
+            }
         });
         
         if let Some(ref image) = state.current_image {

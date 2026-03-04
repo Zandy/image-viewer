@@ -77,8 +77,8 @@ pub struct GalleryConfig {
 /// 查看器视图配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ViewerConfig {
-    /// 背景颜色 [R, G, B]
-    pub background_color: [u8; 3],
+    /// 背景颜色 [R, G, B, A]
+    pub background_color: [u8; 4],
     /// 默认适配模式：打开时适应窗口
     pub fit_to_window: bool,
     /// 默认显示信息面板
@@ -141,7 +141,7 @@ impl Default for GalleryConfig {
 impl Default for ViewerConfig {
     fn default() -> Self {
         Self {
-            background_color: [30, 30, 30],
+            background_color: [30, 30, 30, 255],
             fit_to_window: true,
             show_info_panel: false,
             min_scale: 0.1,
@@ -501,6 +501,7 @@ impl ViewerConfig {
                 self.background_color[0],
                 self.background_color[1],
                 self.background_color[2],
+                self.background_color[3],
             ],
             fit_to_window: self.fit_to_window,
             show_info_panel: self.show_info_panel,
@@ -628,7 +629,7 @@ grid_spacing = 16.0
 show_filenames = false
 
 [viewer]
-background_color = [50, 50, 50]
+background_color = [50, 50, 50, 255]
 fit_to_window = false
 show_info_panel = true
 min_scale = 0.05
@@ -688,7 +689,7 @@ theme = "dark"
                 show_filenames: false,
             },
             viewer: ViewerConfig {
-                background_color: [20, 20, 20],
+                background_color: [20, 20, 20, 255],
                 fit_to_window: false,
                 show_info_panel: true,
                 min_scale: 0.2,
@@ -743,7 +744,7 @@ grid_spacing = 12.0
 show_filenames = true
 
 [viewer]
-background_color = [40, 40, 40]
+background_color = [40, 40, 40, 255]
 fit_to_window = true
 show_info_panel = true
 min_scale = 0.1
@@ -966,7 +967,7 @@ width = 100
                 show_filenames: true,
             },
             viewer: ViewerConfig {
-                background_color: [40, 40, 40],
+                background_color: [40, 40, 40, 255],
                 fit_to_window: true,
                 show_info_panel: false,
                 min_scale: 0.15,
@@ -1287,7 +1288,7 @@ grid_spacing = 16.0
 show_filenames = true
 
 [viewer]
-background_color = [25, 25, 25]
+background_color = [25, 25, 25, 255]
 fit_to_window = false
 show_info_panel = true
 min_scale = 0.05
@@ -1306,7 +1307,7 @@ theme = "dark"
         assert!(config.window.maximized);
         assert_eq!(config.gallery.thumbnail_size, 180);
         assert_eq!(config.gallery.items_per_row, 8);
-        assert_eq!(config.viewer.background_color, [25, 25, 25]);
+        assert_eq!(config.viewer.background_color, [25, 25, 25, 255]);
         assert_eq!(config.viewer.min_scale, 0.05);
         assert_eq!(config.viewer.max_scale, 20.0);
         assert_eq!(
@@ -1347,7 +1348,7 @@ theme = "dark"
     #[test]
     fn test_viewer_config_validate() {
         let config = ViewerConfig {
-            background_color: [40, 40, 40],
+            background_color: [40, 40, 40, 255],
             fit_to_window: true,
             show_info_panel: false,
             min_scale: 0.2,
@@ -1392,7 +1393,7 @@ theme = "dark"
     #[test]
     fn test_viewer_config_clamp() {
         let config = ViewerConfig {
-            background_color: [30, 30, 30],
+            background_color: [30, 30, 30, 255],
             fit_to_window: true,
             show_info_panel: true,
             min_scale: 10.0,

@@ -883,22 +883,13 @@ impl EguiApp {
 
 impl eframe::App for EguiApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
-        // 简单的日志函数（追加模式）
-        fn log_debug(msg: &str) {
-            use std::io::Write;
-            if let Ok(mut file) = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open("debug.log")
-            {
-                let _ = writeln!(file, "{}", msg);
-            }
-        }
-
-        log_debug("update() called");
+        // 强制统一所有布局参数，解决浅色/暗色间距不一致问题
+        ctx.style_mut(|style| {
+            style.spacing.item_spacing = egui::vec2(8.0, 8.0);
+            style.spacing.button_padding = egui::vec2(12.0, 8.0);
+        });
 
         // 注意：不要每帧调用 set_pixels_per_point()，这会导致菜单抖动
-        // set_pixels_per_point 应该在应用初始化时配置，而不是每帧
 
         // 初始化画廊缩略图加载器（与 v0.2.0 一致）
         self.gallery_widget.init(ctx);

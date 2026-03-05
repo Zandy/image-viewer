@@ -3,7 +3,7 @@
 //! 显示图片的详细信息，包括文件信息、图片属性和EXIF元数据。
 //! 支持异步加载EXIF数据，不阻塞UI。
 
-use egui::{Color32, Context, Frame, RichText, ScrollArea, SidePanel, Widget};
+use egui::{Context, Frame, RichText, ScrollArea, SidePanel, Widget};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{channel, Receiver};
 use std::thread;
@@ -220,7 +220,7 @@ impl InfoPanel {
             .default_width(panel_width)
             .frame(
                 Frame::side_top_panel(&ctx.style())
-                    .fill(Color32::from_rgba_premultiplied(35, 35, 40, 240)),
+                    .fill(ctx.style().visuals.panel_fill),
             )
             .show(ctx, |ui| {
                 // 更新宽度（限制在最小和最大之间）
@@ -249,10 +249,10 @@ impl InfoPanel {
                         } else {
                             ui.vertical_centered(|ui| {
                                 ui.add_space(50.0);
-                                ui.label(RichText::new("未选择图像").color(Color32::GRAY));
+                                ui.label(RichText::new("未选择图像").color(ui.style().visuals.weak_text_color()));
                                 ui.label(
                                     RichText::new("打开图像以查看详细信息")
-                                        .color(Color32::GRAY)
+                                        .color(ui.style().visuals.weak_text_color())
                                         .size(12.0),
                                 );
                             });
@@ -310,14 +310,14 @@ impl InfoPanel {
                         ui.spinner();
                         ui.label(
                             RichText::new("正在加载EXIF数据...")
-                                .color(Color32::GRAY)
+                                .color(ui.style().visuals.weak_text_color())
                                 .size(12.0),
                         );
                     });
                 } else if let Some(ref exif) = info.exif {
                     self.render_exif_content(ui, exif);
                 } else {
-                    ui.label(RichText::new("无EXIF数据").color(Color32::GRAY).size(12.0));
+                    ui.label(RichText::new("无EXIF数据").color(ui.style().visuals.weak_text_color()).size(12.0));
                 }
             });
     }
@@ -492,14 +492,15 @@ impl Default for InfoPanel {
 
 /// 渲染标签-值对
 fn render_label_value(ui: &mut egui::Ui, label: &str, value: &str) {
+    let text_color = ui.style().visuals.text_color();
     ui.horizontal(|ui| {
         ui.label(
             RichText::new(label)
                 .size(13.0)
-                .color(Color32::LIGHT_GRAY)
+                .color(text_color)
                 .strong(),
         );
-        egui::Label::new(RichText::new(value).size(13.0).color(Color32::WHITE))
+        egui::Label::new(RichText::new(value).size(13.0).color(text_color))
             .wrap()
             .ui(ui);
     });

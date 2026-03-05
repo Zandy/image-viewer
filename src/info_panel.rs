@@ -220,7 +220,7 @@ impl InfoPanel {
             .default_width(panel_width)
             .frame(
                 Frame::side_top_panel(&ctx.style())
-                    .fill(ctx.style().visuals.panel_fill)
+                    .fill(ctx.style().visuals.panel_fill.linear_multiply(0.95))
             )
             .show(ctx, |ui| {
                 // 更新宽度（限制在最小和最大之间）

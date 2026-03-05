@@ -104,7 +104,7 @@ impl ThumbnailLoader {
     /// 处理已完成的缩略图加载 - 返回处理的数量
     pub fn process_results(
         &self,
-        thumbnails: &mut Vec<Option<egui::TextureHandle>>,
+        thumbnails: &mut [Option<egui::TextureHandle>],
         loading_states: &mut [bool],
     ) -> usize {
         let mut count = 0;
@@ -120,6 +120,7 @@ impl ThumbnailLoader {
 }
 
 /// 缩略图缓存 - 管理缩略图纹理
+#[allow(clippy::derivable_impls)]
 pub struct ThumbnailCache {
     loader: Option<ThumbnailLoader>,
     /// 缩略图纹理缓存
@@ -130,6 +131,7 @@ pub struct ThumbnailCache {
     requested: Vec<bool>,
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for ThumbnailCache {
     fn default() -> Self {
         Self {

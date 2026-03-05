@@ -218,10 +218,7 @@ impl InfoPanel {
             .min_width(200.0)
             .max_width(400.0)
             .default_width(panel_width)
-            .frame(
-                Frame::side_top_panel(&ctx.style())
-                    .fill(ctx.style().visuals.panel_fill),
-            )
+            .frame(Frame::side_top_panel(&ctx.style()).fill(ctx.style().visuals.panel_fill))
             .show(ctx, |ui| {
                 // 更新宽度（限制在最小和最大之间）
                 let new_width = ui.available_width();
@@ -249,7 +246,10 @@ impl InfoPanel {
                         } else {
                             ui.vertical_centered(|ui| {
                                 ui.add_space(50.0);
-                                ui.label(RichText::new("未选择图像").color(ui.style().visuals.weak_text_color()));
+                                ui.label(
+                                    RichText::new("未选择图像")
+                                        .color(ui.style().visuals.weak_text_color()),
+                                );
                                 ui.label(
                                     RichText::new("打开图像以查看详细信息")
                                         .color(ui.style().visuals.weak_text_color())
@@ -317,7 +317,11 @@ impl InfoPanel {
                 } else if let Some(ref exif) = info.exif {
                     self.render_exif_content(ui, exif);
                 } else {
-                    ui.label(RichText::new("无EXIF数据").color(ui.style().visuals.weak_text_color()).size(12.0));
+                    ui.label(
+                        RichText::new("无EXIF数据")
+                            .color(ui.style().visuals.weak_text_color())
+                            .size(12.0),
+                    );
                 }
             });
     }
@@ -494,12 +498,7 @@ impl Default for InfoPanel {
 fn render_label_value(ui: &mut egui::Ui, label: &str, value: &str) {
     let text_color = ui.style().visuals.text_color();
     ui.horizontal(|ui| {
-        ui.label(
-            RichText::new(label)
-                .size(13.0)
-                .color(text_color)
-                .strong(),
-        );
+        ui.label(RichText::new(label).size(13.0).color(text_color).strong());
         egui::Label::new(RichText::new(value).size(13.0).color(text_color))
             .wrap()
             .ui(ui);

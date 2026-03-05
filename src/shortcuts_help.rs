@@ -6,15 +6,9 @@
 use egui::{Color32, Context, FontId, RichText, Vec2, Window};
 
 /// 快捷键帮助面板状态
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ShortcutsHelpPanel {
     pub visible: bool,
-}
-
-impl Default for ShortcutsHelpPanel {
-    fn default() -> Self {
-        Self { visible: false }
-    }
 }
 
 impl ShortcutsHelpPanel {

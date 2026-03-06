@@ -514,6 +514,45 @@ impl EguiApp {
                 state.view.user_zoomed = true;
             });
         }
+
+        // 回车键 - 图库模式下打开选中的图片
+        if ctx.input(|i| i.key_pressed(egui::Key::Enter)) {
+            // 从 service 获取状态
+            let state = self.service.get_state().ok();
+            // 检查是否在图库模式且有选中的图片
+            if let Some(s) = state {
+                if s.view.view_mode == ViewMode::Gallery {
+                    if let Some(selected_index) = s.gallery.gallery.selected_index() {
+                        if let Some(selected_image) = s.gallery.gallery.get_image(selected_index) {
+                            // 加载图片
+                            let image_path = selected_image.path().to_path_buf();
+
+                            // 获取窗口尺寸
+                            let rect = ctx.viewport_rect();
+                            let win_w = rect.width();
+                            let win_h = rect.height();
+
+                            // 获取配置
+                            let fit_to_window = s.config.viewer.fit_to_window;
+
+                            // 加载纹理和数据
+                            self.load_and_set_image(ctx, &image_path);
+
+                            // 打开图片
+                            let _ = self.service.update_state(|mut state| {
+                                let _ = self.service.view_use_case.open_image(
+                                    &image_path,
+                                    &mut state.view,
+                                    Some(win_w),
+                                    Some(win_h),
+                                    fit_to_window,
+                                );
+                            });
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// 渲染拖拽覆盖层

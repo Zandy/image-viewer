@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use crate::adapters::egui::widgets::{GalleryWidget, ViewerWidget};
 use crate::clipboard::ClipboardManager;
-use crate::core::domain::ViewMode;
+use crate::core::domain::{NavigationDirection, ViewMode};
 use crate::core::ports::AppConfig;
 use crate::core::ports::FileDialogPort;
 use crate::core::use_cases::{AppState, GalleryState, ImageViewerService, ViewState};
@@ -243,6 +243,115 @@ impl EguiApp {
         });
     }
 
+    /// 导航到指定方向的图片并在查看器模式下打开
+    fn navigate_and_open(&mut self, ctx: &Context, direction: NavigationDirection) {
+        let mut new_index: Option<usize> = None;
+        let _ = self.service.update_state(|state| {
+            new_index = self
+                .service
+                .navigate_use_case
+                .navigate(&mut state.gallery, direction);
+        });
+
+        // 只有在查看器模式下才打开图片
+        if let Ok(state) = self.service.get_state() {
+            if state.view.view_mode == ViewMode::Viewer {
+                if let Some(index) = new_index {
+                    if let Some(image) = state.gallery.gallery.get_image(index) {
+                        let path = image.path().to_path_buf();
+                        self.open_image(ctx, &path, state.config.viewer.fit_to_window);
+                    }
+                }
+            }
+        }
+    }
+
+    /// 打开图片（加载纹理并设置视图状态）
+    fn open_image(&mut self, ctx: &Context, path: &std::path::Path, fit_to_window: bool) {
+        // 加载纹理和数据
+        self.load_and_set_image(ctx, path);
+
+        // 获取窗口尺寸
+        let rect = ctx.viewport_rect();
+        let win_w = rect.width();
+        let win_h = rect.height();
+
+        // 打开图片
+        let _ = self.service.update_state(|state| {
+            let _ = self.service.view_use_case.open_image(
+                path,
+                &mut state.view,
+                Some(win_w),
+                Some(win_h),
+                fit_to_window,
+            );
+        });
+    }
+
+    /// 应用缩放操作
+    /// - `factor`: `Some(factor)` - 乘以指定系数（如 1.25 放大，1/1.25 缩小）；`Some(1.0)` - 100%；`None` - 适应窗口
+    /// - `viewport_size`: 窗口尺寸 `(width, height)`，仅在 `factor` 为 `None` 时需要
+    fn apply_zoom(&mut self, factor: Option<f32>, viewport_size: Option<(f32, f32)>) {
+        let _ = self.service.update_state(|state| {
+            match factor {
+                None => {
+                    // 适应窗口
+                    if let (Some((win_w, win_h)), Some(ref image)) =
+                        (viewport_size, &state.view.current_image)
+                    {
+                        let img_w = image.metadata().width;
+                        let img_h = image.metadata().height;
+
+                        let fit_scale =
+                            crate::core::use_cases::ViewImageUseCase::calculate_fit_scale(
+                                img_w, img_h, win_w, win_h,
+                            );
+
+                        state.view.scale = crate::core::domain::Scale::new(
+                            fit_scale,
+                            state.config.viewer.min_scale,
+                            state.config.viewer.max_scale,
+                        );
+                        state.view.offset = crate::core::domain::Position::default();
+                        state.view.user_zoomed = true;
+                    }
+                }
+                Some(1.0) => {
+                    // 100% 原始尺寸
+                    state.view.scale = crate::core::domain::Scale::new(
+                        1.0,
+                        state.config.viewer.min_scale,
+                        state.config.viewer.max_scale,
+                    );
+                    state.view.offset = crate::core::domain::Position::default();
+                    state.view.user_zoomed = true;
+                }
+                Some(multiplier) => {
+                    // 按比例缩放
+                    if !state.view.user_zoomed {
+                        state.view.scale = crate::core::domain::Scale::new(
+                            1.0,
+                            state.config.viewer.min_scale,
+                            state.config.viewer.max_scale,
+                        );
+                        state.view.user_zoomed = true;
+                    }
+                    let current = state.view.scale.value();
+                    let new_scale = if multiplier > 1.0 {
+                        (current * multiplier).min(state.config.viewer.max_scale)
+                    } else {
+                        (current * multiplier).max(state.config.viewer.min_scale)
+                    };
+                    state.view.scale = crate::core::domain::Scale::new(
+                        new_scale,
+                        state.config.viewer.min_scale,
+                        state.config.viewer.max_scale,
+                    );
+                }
+            }
+        });
+    }
+
     /// 处理快捷键
     fn handle_shortcuts(&mut self, ctx: &Context) {
         // 让快捷键帮助面板处理 ? 键和 Esc 键
@@ -263,16 +372,17 @@ impl EguiApp {
                 .unwrap_or(false);
 
             if should_open_image {
-                // 获取选中的图片路径
-                let selected_path: Option<PathBuf> =
-                    self.service.get_state().ok().and_then(|state| {
-                        state.gallery.gallery.selected_index().and_then(|index| {
+                // 获取选中的图片路径和配置
+                let (selected_path, fit_to_window): (Option<PathBuf>, bool) =
+                    self.service.get_state().ok().map_or((None, true), |state| {
+                        let path = state.gallery.gallery.selected_index().and_then(|index| {
                             state
                                 .gallery
                                 .gallery
                                 .get_image(index)
                                 .map(|img| img.path().to_path_buf())
-                        })
+                        });
+                        (path, state.config.viewer.fit_to_window)
                     });
 
                 if let Some(path) = selected_path {
@@ -280,28 +390,8 @@ impl EguiApp {
                     let _ = self.service.update_state(|state| {
                         state.view.view_mode = ViewMode::Viewer;
                     });
-                    // 打开选中的图片（加载纹理和数据）
-                    self.load_and_set_image(ctx, &path);
-
-                    // 获取窗口尺寸
-                    let rect = ctx.viewport_rect();
-                    let win_w = rect.width();
-                    let win_h = rect.height();
-                    let fit_to_window = self
-                        .service
-                        .get_state()
-                        .map(|s| s.config.viewer.fit_to_window)
-                        .unwrap_or(true);
-
-                    let _ = self.service.update_state(|state| {
-                        let _ = self.service.view_use_case.open_image(
-                            &path,
-                            &mut state.view,
-                            Some(win_w),
-                            Some(win_h),
-                            fit_to_window,
-                        );
-                    });
+                    // 打开选中的图片
+                    self.open_image(ctx, &path, fit_to_window);
                 }
             } else {
                 // 普通切换（查看器→画廊 或 画廊无选中）
@@ -318,85 +408,11 @@ impl EguiApp {
 
         // 箭头键导航
         if ctx.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
-            let mut new_index: Option<usize> = None;
-            let _ = self.service.update_state(|state| {
-                new_index = self.service.navigate_use_case.navigate(
-                    &mut state.gallery,
-                    crate::core::domain::NavigationDirection::Previous,
-                );
-            });
-
-            // 只有在查看器模式下才打开图片
-            // 在图库模式下只更新选中项，不打开图片
-            if let Ok(state) = self.service.get_state() {
-                if state.view.view_mode == ViewMode::Viewer {
-                    // 导航后加载选中的图片
-                    if let Some(index) = new_index {
-                        if let Some(image) = state.gallery.gallery.get_image(index) {
-                            let path = image.path().to_path_buf();
-                            // 加载纹理和数据
-                            self.load_and_set_image(ctx, &path);
-                            // 获取窗口尺寸
-                            let rect = ctx.viewport_rect();
-                            let win_w = rect.width();
-                            let win_h = rect.height();
-                            let fit_to_window = state.config.viewer.fit_to_window;
-                            // 打开图片
-                            let _ = self.service.update_state(|state| {
-                                let _ = self.service.view_use_case.open_image(
-                                    &path,
-                                    &mut state.view,
-                                    Some(win_w),
-                                    Some(win_h),
-                                    fit_to_window,
-                                );
-                            });
-                        }
-                    }
-                }
-                // 图库模式下只更新选中项，不需要额外操作
-            }
+            self.navigate_and_open(ctx, NavigationDirection::Previous);
         }
 
         if ctx.input(|i| i.key_pressed(egui::Key::ArrowRight)) {
-            let mut new_index: Option<usize> = None;
-            let _ = self.service.update_state(|state| {
-                new_index = self.service.navigate_use_case.navigate(
-                    &mut state.gallery,
-                    crate::core::domain::NavigationDirection::Next,
-                );
-            });
-
-            // 只有在查看器模式下才打开图片
-            // 在图库模式下只更新选中项，不打开图片
-            if let Ok(state) = self.service.get_state() {
-                if state.view.view_mode == ViewMode::Viewer {
-                    // 导航后加载选中的图片
-                    if let Some(index) = new_index {
-                        if let Some(image) = state.gallery.gallery.get_image(index) {
-                            let path = image.path().to_path_buf();
-                            // 加载纹理和数据
-                            self.load_and_set_image(ctx, &path);
-                            // 获取窗口尺寸
-                            let rect = ctx.viewport_rect();
-                            let win_w = rect.width();
-                            let win_h = rect.height();
-                            let fit_to_window = state.config.viewer.fit_to_window;
-                            // 打开图片
-                            let _ = self.service.update_state(|state| {
-                                let _ = self.service.view_use_case.open_image(
-                                    &path,
-                                    &mut state.view,
-                                    Some(win_w),
-                                    Some(win_h),
-                                    fit_to_window,
-                                );
-                            });
-                        }
-                    }
-                }
-                // 图库模式下只更新选中项，不需要额外操作
-            }
+            self.navigate_and_open(ctx, NavigationDirection::Next);
         }
 
         // F11 - 全屏（v0.2.0 兼容：也支持 Ctrl+Shift+F）
@@ -432,86 +448,23 @@ impl EguiApp {
 
         // Ctrl++ 放大 - 使用 v0.2.0 的 zoom_step (1.25)
         if ctx.input(|i| i.key_pressed(egui::Key::Plus) && i.modifiers.ctrl) {
-            let _ = self.service.update_state(|state| {
-                if !state.view.user_zoomed {
-                    state.view.scale = crate::core::domain::Scale::new(
-                        1.0,
-                        state.config.viewer.min_scale,
-                        state.config.viewer.max_scale,
-                    );
-                    state.view.user_zoomed = true;
-                }
-                let current = state.view.scale.value();
-                let new_scale = (current * 1.25).min(state.config.viewer.max_scale);
-                state.view.scale = crate::core::domain::Scale::new(
-                    new_scale,
-                    state.config.viewer.min_scale,
-                    state.config.viewer.max_scale,
-                );
-            });
+            self.apply_zoom(Some(1.25), None);
         }
 
         // Ctrl+- 缩小 - 使用 v0.2.0 的 zoom_step (1.25)
         if ctx.input(|i| i.key_pressed(egui::Key::Minus) && i.modifiers.ctrl) {
-            let _ = self.service.update_state(|state| {
-                if !state.view.user_zoomed {
-                    state.view.scale = crate::core::domain::Scale::new(
-                        1.0,
-                        state.config.viewer.min_scale,
-                        state.config.viewer.max_scale,
-                    );
-                    state.view.user_zoomed = true;
-                }
-                let current = state.view.scale.value();
-                let new_scale = (current / 1.25).max(state.config.viewer.min_scale);
-                state.view.scale = crate::core::domain::Scale::new(
-                    new_scale,
-                    state.config.viewer.min_scale,
-                    state.config.viewer.max_scale,
-                );
-            });
+            self.apply_zoom(Some(1.0 / 1.25), None);
         }
 
         // Ctrl+0 - 适应窗口（根据窗口大小自动计算）
         if ctx.input(|i| i.key_pressed(egui::Key::Num0) && i.modifiers.ctrl) {
-            let _ = self.service.update_state(|state| {
-                // 获取窗口尺寸
-                let rect = ctx.viewport_rect();
-                let win_w = rect.width();
-                let win_h = rect.height();
-
-                // 获取当前图像尺寸
-                if let Some(ref image) = state.view.current_image {
-                    let img_w = image.metadata().width;
-                    let img_h = image.metadata().height;
-
-                    // 计算适应窗口的缩放比例
-                    let fit_scale = crate::core::use_cases::ViewImageUseCase::calculate_fit_scale(
-                        img_w, img_h, win_w, win_h,
-                    );
-
-                    state.view.scale = crate::core::domain::Scale::new(
-                        fit_scale,
-                        state.config.viewer.min_scale,
-                        state.config.viewer.max_scale,
-                    );
-                    state.view.offset = crate::core::domain::Position::default();
-                    state.view.user_zoomed = true;
-                }
-            });
+            let rect = ctx.viewport_rect();
+            self.apply_zoom(None, Some((rect.width(), rect.height())));
         }
 
         // Ctrl+1 - 1:1（原始尺寸，100%）
         if ctx.input(|i| i.key_pressed(egui::Key::Num1) && i.modifiers.ctrl) {
-            let _ = self.service.update_state(|state| {
-                state.view.scale = crate::core::domain::Scale::new(
-                    1.0,
-                    state.config.viewer.min_scale,
-                    state.config.viewer.max_scale,
-                );
-                state.view.offset = crate::core::domain::Position::default();
-                state.view.user_zoomed = true;
-            });
+            self.apply_zoom(Some(1.0), None);
         }
 
         // 回车键 - 图库模式下打开选中的图片
@@ -523,30 +476,10 @@ impl EguiApp {
                 if s.view.view_mode == ViewMode::Gallery {
                     if let Some(selected_index) = s.gallery.gallery.selected_index() {
                         if let Some(selected_image) = s.gallery.gallery.get_image(selected_index) {
-                            // 加载图片
                             let image_path = selected_image.path().to_path_buf();
-
-                            // 获取窗口尺寸
-                            let rect = ctx.viewport_rect();
-                            let win_w = rect.width();
-                            let win_h = rect.height();
-
-                            // 获取配置
                             let fit_to_window = s.config.viewer.fit_to_window;
-
-                            // 加载纹理和数据
-                            self.load_and_set_image(ctx, &image_path);
-
-                            // 打开图片
-                            let _ = self.service.update_state(|state| {
-                                let _ = self.service.view_use_case.open_image(
-                                    &image_path,
-                                    &mut state.view,
-                                    Some(win_w),
-                                    Some(win_h),
-                                    fit_to_window,
-                                );
-                            });
+                            // 使用 open_image 辅助函数打开图片
+                            self.open_image(ctx, &image_path, fit_to_window);
                         }
                     }
                 }

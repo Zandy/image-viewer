@@ -131,6 +131,45 @@ cargo build --release
 
 从 [Releases](https://github.com/yourusername/image-viewer/releases) 页面下载预构建的二进制文件。
 
+#### ⚠️ 安全提示（首次运行）
+
+由于当前版本暂未进行代码签名，首次运行时系统可能会显示安全警告，请按以下步骤操作：
+
+**Windows:**
+1. 运行程序时若显示 "Windows 已保护你的电脑"
+2. 点击 **"更多信息"**（More info）
+3. 点击 **"仍要运行"**（Run anyway）
+4. 下次打开将不再提示
+
+> 💡 或者：右键点击程序 → 属性 → 勾选"解除锁定"（Unblock）→ 应用
+
+**macOS:**
+1. 首次打开时若显示 "无法验证开发者"
+2. 点击 **"取消"**
+3. 打开 **系统设置 → 隐私与安全性**
+4. 在"安全性"下方找到 "Image Viewer"，点击 **"仍要打开"**
+5. 再次点击 **"打开"** 确认
+
+> 💡 或者：右键点击应用 → 选择"打开" → 点击"打开"确认
+> 
+> 💡 终端命令（快速解除）：
+> ```bash
+> xattr -d com.apple.quarantine /Applications/Image\ Viewer.app
+
+### Linux
+```bash
+# 赋予执行权限后运行
+chmod +x ./image-viewer
+./image-viewer
+```
+
+> 💡 **推荐**: 使用 AppImage 格式，无需安装，双击即可运行
+
+**为什么有这个提示？**
+- 代码签名证书需要年费和公司资质审核
+- 我们正在准备正式签名，将在 v1.0 版本解决
+- 所有源码开源可审计，请放心使用
+
 ## 使用
 
 ### 基础用法

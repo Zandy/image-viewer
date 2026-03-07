@@ -53,35 +53,35 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             name: linux-x86_64
-            binary_name: image-viewer
+            binary_name: oas-image-viewer
             archive_ext: tar.gz
             archive_cmd: tar czvf
           
           - os: ubuntu-24.04-arm  # ARM64 原生 runner (GitHub beta)
             target: aarch64-unknown-linux-gnu
             name: linux-aarch64
-            binary_name: image-viewer
+            binary_name: oas-image-viewer
             archive_ext: tar.gz
             archive_cmd: tar czvf
           
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             name: windows-x86_64
-            binary_name: image-viewer.exe
+            binary_name: oas-image-viewer.exe
             archive_ext: zip
             archive_cmd: 7z a
           
           - os: macos-latest
             target: x86_64-apple-darwin
             name: macos-x86_64
-            binary_name: image-viewer
+            binary_name: oas-image-viewer
             archive_ext: tar.gz
             archive_cmd: tar czvf
           
           - os: macos-latest
             target: aarch64-apple-darwin
             name: macos-aarch64
-            binary_name: image-viewer
+            binary_name: oas-image-viewer
             archive_ext: tar.gz
             archive_cmd: tar czvf
 

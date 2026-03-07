@@ -137,19 +137,16 @@ impl ShortcutsHelpPanel {
     /// 处理键盘输入（? 键和 ESC 键）
     /// 返回 true 表示按键已被处理
     pub fn handle_input(&mut self, ctx: &Context) -> bool {
-        // 检查 ? 字符输入（通过 Text 事件）
-        // ? 需要 Shift+/，所以要检查 Shift 修饰键
-        // 修复：在一个闭包内完成所有检查，避免 ctx.input() 调用两次导致状态不一致
+        // 检查 ? 键 - 通过 Text 事件检测（兼容中英文）
         let question_pressed = ctx.input(|i| {
-            let shift_pressed = i.modifiers.shift;
             let question_typed = i.events.iter().any(|e| {
                 if let egui::Event::Text(text) = e {
-                    text == "?"
+                    text == "?" || text == "？"
                 } else {
                     false
                 }
             });
-            shift_pressed && question_typed
+            question_typed
         });
 
         if question_pressed {

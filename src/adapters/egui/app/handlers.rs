@@ -162,14 +162,18 @@ impl EguiApp {
 
     /// 导航并打开图片
     pub(crate) fn navigate_and_open(&mut self, ctx: &Context, direction: NavigationDirection) {
-        let index = self.service.get_state().ok().and_then(|mut state| {
-            self.service
+        // 使用 update_state 持久化导航状态
+        let _ = self.service.update_state(|state| {
+            let _ = self.service
                 .navigate_use_case
-                .navigate(&mut state.gallery, direction)
+                .navigate(&mut state.gallery, direction);
         });
 
-        if let Some(idx) = index {
-            self.open_navigated_image(ctx, Some(idx));
+        // 获取更新后的状态来读取选中的索引
+        if let Ok(state) = self.service.get_state() {
+            if let Some(idx) = state.gallery.gallery.selected_index() {
+                self.open_navigated_image(ctx, Some(idx));
+            }
         }
     }
 
@@ -230,6 +234,23 @@ impl EguiApp {
             self.service
                 .view_use_case
                 .zoom_out(&mut state.view, 1.25, min);
+        });
+    }
+
+    /// 重置缩放（100%原始尺寸）
+    pub(crate) fn handle_reset_zoom(&mut self) {
+        let _ = self.service.update_state(|state| {
+            self.service.view_use_case.reset_zoom(&mut state.view);
+        });
+    }
+
+    /// 适应窗口
+    pub(crate) fn handle_fit_to_window(&mut self, ctx: &Context) {
+        let rect = ctx.viewport_rect();
+        let _ = self.service.update_state(|state| {
+            self.service
+                .view_use_case
+                .fit_to_window(&mut state.view, rect.width(), rect.height());
         });
     }
 }

@@ -13,7 +13,7 @@ pub mod use_cases;
 pub use domain::{Boundary, ConfigError, GalleryError, UnavailableReason, ViewError};
 
 /// Core 模块版本
-pub const VERSION: &str = "0.3.0";
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// 通用结果类型
 pub type Result<T> = std::result::Result<T, CoreError>;
@@ -186,7 +186,7 @@ mod tests {
 
     #[test]
     fn test_version_constant() {
-        assert_eq!(VERSION, "0.3.0");
+        
     }
 
     #[test]

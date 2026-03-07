@@ -121,7 +121,7 @@ Since the current version is not code-signed yet, the system may show security w
 1. If you see "Cannot verify developer"
 2. Click **"Cancel"**
 3. Open **System Settings → Privacy & Security**
-4. Find "Image Viewer" under Security, click **"Open Anyway"**
+4. Find "OAS Image Viewer" under Security, click **"Open Anyway"**
 5. Click **"Open"** again to confirm
 
 > 💡 Or: Right-click app → Select "Open" → Click "Open"

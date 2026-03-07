@@ -176,7 +176,7 @@ cargo clippy -- -D warnings -W clippy::all
 
 | 类型 | 规范 | 示例 |
 |------|------|------|
-| 结构体 | PascalCase | `ImageViewer`, `GalleryState` |
+| 结构体 | PascalCase | `OASImageViewer`, `GalleryState` |
 | 函数/方法 | snake_case | `load_image()`, `zoom_in()` |
 | 常量 | SCREAMING_SNAKE_CASE | `MAX_ZOOM_LEVEL` |
 | 枚举 | PascalCase | `ViewMode::Gallery` |

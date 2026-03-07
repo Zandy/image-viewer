@@ -43,8 +43,12 @@ impl ShortcutsHelpPanel {
             return;
         }
 
-        // 创建半透明背景遮罩
+        // 获取视口大小，计算面板最大尺寸（留出边距）
         let screen_rect = ctx.viewport_rect();
+        let max_width = screen_rect.width().min(420.0).max(280.0);
+        let max_height = screen_rect.height().min(520.0).max(200.0);
+
+        // 创建半透明背景遮罩
         let painter = ctx.layer_painter(egui::LayerId::new(
             egui::Order::Background,
             "shortcuts_help_bg".into(),
@@ -55,13 +59,13 @@ impl ShortcutsHelpPanel {
             Color32::from_rgba_premultiplied(0, 0, 0, 120),
         );
 
-        // 帮助面板窗口
+        // 帮助面板窗口 - 响应式设计
         Window::new("⌨️ 快捷键帮助")
             .collapsible(false)
             .resizable(false)
             .movable(true)
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-            .fixed_size([400.0, 500.0])
+            .max_size([max_width, max_height])
             .frame(
                 egui::Frame::window(&ctx.style())
                     .fill(Color32::from_rgb(40, 40, 45))
@@ -71,66 +75,71 @@ impl ShortcutsHelpPanel {
             .show(ctx, |ui| {
                 ui.vertical_centered(|ui| {
                     ui.heading("键盘快捷键");
-                    ui.add_space(16.0);
+                    ui.add_space(12.0);
                 });
 
-                ui.scope(|ui| {
-                    // 设置面板内文字样式
-                    ui.style_mut().spacing.item_spacing = Vec2::new(8.0, 12.0);
+                // 使用 ScrollArea 确保内容可滚动
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show(ui, |ui| {
+                        ui.scope(|ui| {
+                            // 设置面板内文字样式
+                            ui.style_mut().spacing.item_spacing = Vec2::new(8.0, 10.0);
 
-                    // 文件操作
-                    render_shortcut_category(
-                        ui,
-                        "📁 文件",
-                        &[
-                            ("Ctrl + O", "打开图像/文件夹"),
-                            ("Esc", "退出全屏 / 关闭面板"),
-                        ],
-                    );
+                            // 文件操作
+                            render_shortcut_category(
+                                ui,
+                                "📁 文件",
+                                &[
+                                    ("Ctrl + O", "打开图像/文件夹"),
+                                    ("Esc", "退出全屏 / 关闭面板"),
+                                ],
+                            );
 
-                    ui.add_space(8.0);
+                            ui.add_space(6.0);
 
-                    // 导航操作
-                    render_shortcut_category(
-                        ui,
-                        "🧭 导航",
-                        &[
-                            ("← / →", "切换到上/下一张图片"),
-                            ("G", "切换画廊/查看器视图"),
-                        ],
-                    );
+                            // 导航操作
+                            render_shortcut_category(
+                                ui,
+                                "🧭 导航",
+                                &[
+                                    ("← / →", "切换到上/下一张图片"),
+                                    ("G", "切换画廊/查看器视图"),
+                                ],
+                            );
 
-                    ui.add_space(8.0);
+                            ui.add_space(6.0);
 
-                    // 视图操作
-                    render_shortcut_category(
-                        ui,
-                        "👁 视图",
-                        &[
-                            ("F11", "全屏切换"),
-                            ("Ctrl + +", "放大"),
-                            ("Ctrl + -", "缩小"),
-                            ("Ctrl + 0", "适应窗口"),
-                            ("Ctrl + 1", "1:1 原始尺寸"),
-                            ("F", "显示/隐藏信息面板"),
-                            ("双击", "全屏切换"),
-                        ],
-                    );
+                            // 视图操作
+                            render_shortcut_category(
+                                ui,
+                                "👁 视图",
+                                &[
+                                    ("F11", "全屏切换"),
+                                    ("Ctrl + +", "放大"),
+                                    ("Ctrl + -", "缩小"),
+                                    ("Ctrl + 0", "适应窗口"),
+                                    ("Ctrl + 1", "1:1 原始尺寸"),
+                                    ("F", "显示/隐藏信息面板"),
+                                    ("双击", "全屏切换"),
+                                ],
+                            );
 
-                    ui.add_space(8.0);
+                            ui.add_space(6.0);
 
-                    // 其他操作
-                    render_shortcut_category(ui, "🔧 其他", &[("?", "显示/隐藏此帮助面板")]);
-                });
+                            // 其他操作
+                            render_shortcut_category(ui, "🔧 其他", &[("?", "显示/隐藏此帮助面板")]);
+                        });
 
-                ui.add_space(16.0);
+                        ui.add_space(12.0);
 
-                // 关闭按钮
-                ui.vertical_centered(|ui| {
-                    if ui.button("关闭 (Esc)").clicked() {
-                        self.hide();
-                    }
-                });
+                        // 关闭按钮
+                        ui.vertical_centered(|ui| {
+                            if ui.button("关闭 (Esc)").clicked() {
+                                self.hide();
+                            }
+                        });
+                    });
             });
     }
 

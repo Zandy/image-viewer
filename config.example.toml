@@ -4,7 +4,7 @@
 # config directory and modify as needed:
 #
 # - Linux: ~/.config/oas-image-viewer/config.toml
-# - macOS: ~/Library/Application Support/com.imageviewer.oas-image-viewer/config.toml
+# - macOS: ~/Library/Application Support/com.openappsys.oas-image-viewer/config.toml
 # - Windows: %APPDATA%\oas-image-viewer\config.toml
 
 [window]

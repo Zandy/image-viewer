@@ -1,4 +1,4 @@
-# Image Viewer
+# OAS Image Viewer
 
 A modern, high-performance image viewer built with Rust and egui.
 
@@ -33,7 +33,7 @@ This project adopts **Layered Architecture** design:
 │                     Domain Layer                            │
 │  ┌─────────────────────────┐  ┌─────────────────────────┐   │
 │  │      app/mod.rs         │  │       config.rs         │   │
-│  │   (ImageViewerApp)      │  │    (config mgmt)        │   │
+│  │   (OASImageViewerApp)      │  │    (config mgmt)        │   │
 │  │   app state, event loop │  │  config load & persist  │   │
 │  └─────────────────────────┘  └─────────────────────────┘   │
 ├─────────────────────────────────────────────────────────────┤
@@ -160,7 +160,7 @@ oas-image-viewer /path/to/image.png
 oas-image-viewer /path/to/images/
 
 # Show help
-image-viewer --help
+oas-image-viewer --help
 ```
 
 ### Keyboard Shortcuts
@@ -227,7 +227,7 @@ prev_image = "Left"
 ### Project Structure
 
 ```
-image-viewer/
+oas-image-viewer/
 ├── Cargo.toml           # Project configuration
 ├── config.example.toml  # Configuration template
 ├── src/

@@ -1,6 +1,6 @@
-# Image-Viewer Installation Guide
+# OAS-Image-Viewer Installation Guide
 
-This guide explains how to install Image-Viewer on different platforms and register it as the default image viewer.
+This guide explains how to install OAS-Image-Viewer on different platforms and register it as the default image viewer.
 
 ## Table of Contents
 
@@ -21,9 +21,9 @@ This guide explains how to install Image-Viewer on different platforms and regis
 
 最简单的方式，无需安装，解压即用：
 
-1. 下载绿色版压缩包 `image-viewer-windows-x64.zip`
-2. 解压到任意文件夹（如 `D:\Tools\Image-Viewer`）
-3. 直接运行 `image-viewer.exe`
+1. 下载绿色版压缩包 `oas-image-viewer-windows-x64.zip`
+2. 解压到任意文件夹（如 `D:\Tools\OAS-Image-Viewer`）
+3. 直接运行 `oas-image-viewer.exe`
 
 #### 绿色版特点
 - ✅ 无需管理员权限
@@ -35,7 +35,7 @@ This guide explains how to install Image-Viewer on different platforms and regis
 
 如需系统集成（右键菜单、默认程序）：
 
-1. 下载安装版 `image-viewer-windows-x64-setup.exe`
+1. 下载安装版 `oas-image-viewer-windows-x64-setup.exe`
 2. 运行安装程序，按提示完成安装
 3. 可选：勾选"添加到右键菜单"
 
@@ -50,7 +50,7 @@ This guide explains how to install Image-Viewer on different platforms and regis
 
 ### 右键菜单注册（可选）
 
-运行 `install\windows\register-context-menu.bat` 添加"使用 Image-Viewer 打开"到右键菜单：
+运行 `install\windows\register-context-menu.bat` 添加"使用 OAS-Image-Viewer 打开"到右键菜单：
 
 ```cmd
 # 在项目目录下运行
@@ -67,19 +67,19 @@ install\windows\register-context-menu.bat
 #### 方法 1：通过设置应用（Windows 10/11）
 1. 打开 设置 → 应用 → 默认应用
 2. 搜索 ".png"、".jpg" 等图片格式
-3. 选择 Image-Viewer 作为默认应用
+3. 选择 OAS-Image-Viewer 作为默认应用
 
 #### 方法 2：通过右键菜单
 1. 右键点击任意图片文件
 2. 选择"打开方式" → "选择其他应用"
-3. 找到 Image-Viewer 并勾选"始终使用此应用打开"
+3. 找到 OAS-Image-Viewer 并勾选"始终使用此应用打开"
 
 ### 便携版配置
 
 绿色版/便携版的配置文件保存在程序目录下：
 ```
-Image-Viewer/
-├── image-viewer.exe
+OAS-Image-Viewer/
+├── oas-image-viewer.exe
 ├── config/
 │   └── config.toml      # 配置文件
 └── cache/               # 缓存目录
@@ -118,15 +118,15 @@ Image-Viewer/
    ./install/macos/install.sh
    ```
 
-3. The app bundle will be created in `~/Applications/Image-Viewer.app`
+3. The app bundle will be created in `~/Applications/OAS-Image-Viewer.app`
 
 ### Setting as Default
 
-To set Image-Viewer as the default app for image files:
+To set OAS-Image-Viewer as the default app for image files:
 
 1. Right-click on any image file
 2. Select **Get Info**
-3. Under **"Open with:"**, select **Image-Viewer**
+3. Under **"Open with:"**, select **OAS-Image-Viewer**
 4. Click **"Change All..."** to apply to all files of that type
 
 ### Supported Formats
@@ -143,7 +143,7 @@ All standard macOS image formats are supported:
 
 Delete the app bundle:
 ```bash
-rm -rf ~/Applications/Image-Viewer.app
+rm -rf ~/Applications/OAS-Image-Viewer.app
 ```
 
 ---
@@ -184,22 +184,22 @@ Or right-click on an image file in your file manager and select "Open with Image
 
 ```bash
 # Set as default for PNG
-xdg-mime default image-viewer.desktop image/png
+xdg-mime default oas-image-viewer.desktop image/png
 
 # Set as default for JPEG
-xdg-mime default image-viewer.desktop image/jpeg
+xdg-mime default oas-image-viewer.desktop image/jpeg
 
 # Set as default for GIF
-xdg-mime default image-viewer.desktop image/gif
+xdg-mime default oas-image-viewer.desktop image/gif
 
 # Set as default for WebP
-xdg-mime default image-viewer.desktop image/webp
+xdg-mime default oas-image-viewer.desktop image/webp
 
 # Set as default for TIFF
-xdg-mime default image-viewer.desktop image/tiff
+xdg-mime default oas-image-viewer.desktop image/tiff
 
 # Set as default for BMP
-xdg-mime default image-viewer.desktop image/bmp
+xdg-mime default oas-image-viewer.desktop image/bmp
 ```
 
 #### Using GUI (GNOME/KDE/XFCE)
@@ -253,29 +253,29 @@ sudo pacman -S gtk3 libxcb
 cargo build --release
 ```
 
-The binary will be available at `target/release/image-viewer`.
+The binary will be available at `target/release/oas-image-viewer`.
 
 ---
 
 ## File Locations
 
 ### Windows
-- Executable: `%PROGRAMFILES%\Image-Viewer\image-viewer.exe`
-- Registry entries: `HKEY_CLASSES_ROOT\.[extension]\shell\OpenWithImageViewer`
+- Executable: `%PROGRAMFILES%\OAS-Image-Viewer\oas-image-viewer.exe`
+- Registry entries: `HKEY_CLASSES_ROOT\.[extension]\shell\OpenWithOASImageViewer`
 
 ### macOS
-- App Bundle: `~/Applications/Image-Viewer.app`
-- Configuration: `~/Library/Application Support/com.imageviewer.image-viewer/`
+- App Bundle: `~/Applications/OAS-Image-Viewer.app`
+- Configuration: `~/Library/Application Support/com.openappsys.oas-image-viewer/`
 
 ### Linux (User Install)
-- Executable: `~/.local/bin/image-viewer`
-- Desktop file: `~/.local/share/applications/image-viewer.desktop`
-- Configuration: `~/.config/image-viewer/`
+- Executable: `~/.local/bin/oas-image-viewer`
+- Desktop file: `~/.local/share/applications/oas-image-viewer.desktop`
+- Configuration: `~/.config/oas-image-viewer/`
 
 ### Linux (System Install)
-- Executable: `/usr/local/bin/image-viewer`
-- Desktop file: `/usr/share/applications/image-viewer.desktop`
-- Configuration: `~/.config/image-viewer/`
+- Executable: `/usr/local/bin/oas-image-viewer`
+- Desktop file: `/usr/share/applications/oas-image-viewer.desktop`
+- Configuration: `~/.config/oas-image-viewer/`
 
 ---
 

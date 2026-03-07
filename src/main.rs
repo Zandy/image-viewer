@@ -13,7 +13,7 @@ use oas_image_viewer::adapters::egui::EguiApp;
 use oas_image_viewer::core::domain::Image;
 use oas_image_viewer::core::ports::{AppConfig, Storage};
 use oas_image_viewer::core::use_cases::{
-    ImageViewerService, ManageConfigUseCase, NavigateGalleryUseCase, ViewImageUseCase,
+    OASImageViewerService, ManageConfigUseCase, NavigateGalleryUseCase, ViewImageUseCase,
 };
 use oas_image_viewer::{FsImageSource, JsonStorage};
 
@@ -133,7 +133,7 @@ fn run_app() -> Result<()> {
     // 创建应用服务
     info!("[STEP 7] 创建应用服务...");
     log_to_file("[STEP 7] 创建应用服务");
-    let service = Arc::new(ImageViewerService::new(
+    let service = Arc::new(OASImageViewerService::new(
         view_use_case,
         navigate_use_case,
         config_use_case,
@@ -205,7 +205,7 @@ fn run_app() -> Result<()> {
     log_to_file("[STEP 10] 启动 UI");
     let service_clone = service.clone();
     eframe::run_native(
-        "Image Viewer",
+        "OAS Image Viewer",
         native_options,
         Box::new(move |cc| {
             log_to_file("UI 初始化回调");

@@ -17,7 +17,7 @@
 
 #### 方式一：下载预编译二进制文件
 
-1. 访问 [Releases](https://github.com/yourusername/image-viewer/releases) 页面
+1. 访问 [Releases](https://github.com/openappsys/oas-image-viewer/releases) 页面
 2. 下载适合您系统的版本
 3. 解压并运行
 
@@ -28,27 +28,27 @@
 rustc --version
 
 # 2. 克隆仓库
-git clone https://github.com/yourusername/image-viewer.git
-cd image-viewer
+git clone https://github.com/openappsys/oas-image-viewer.git
+cd oas-image-viewer
 
 # 3. 构建
 cargo build --release
 
 # 4. 运行
-./target/release/image-viewer
+./target/release/oas-image-viewer
 ```
 
 ### 首次运行
 
 ```bash
 # 直接打开
-image-viewer
+oas-image-viewer
 
 # 打开指定图片
-image-viewer photo.png
+oas-image-viewer photo.png
 
 # 打开文件夹
-image-viewer ~/Pictures/
+oas-image-viewer ~/Pictures/
 ```
 
 ---
@@ -131,9 +131,9 @@ image-viewer ~/Pictures/
 
 配置文件位置：
 
-- **Linux**: `~/.config/image-viewer/config.toml`
-- **macOS**: `~/Library/Application Support/com.imageviewer.image-viewer/config.toml`
-- **Windows**: `%APPDATA%\\image-viewer\\config\\config.toml`
+- **Linux**: `~/.config/oas-image-viewer/config.toml`
+- **macOS**: `~/Library/Application Support/com.openappsys.oas-image-viewer/config.toml`
+- **Windows**: `%APPDATA%\\oas-image-viewer\\config\\config.toml`
 
 #### 完整配置示例
 
@@ -204,7 +204,7 @@ random_order = false        # 随机顺序
 #### Windows
 1. 右键点击任意图片文件
 2. 选择"打开方式" → "选择其他应用"
-3. 找到 image-viewer 并勾选"始终使用此应用打开"
+3. 找到 oas-image-viewer 并勾选"始终使用此应用打开"
 
 #### macOS
 1. 右键点击任意图片文件
@@ -256,12 +256,12 @@ random_order = false        # 随机顺序
      libxcb-xfixes0-dev
    
    # 检查缺失的库
-   ldd ./target/release/image-viewer
+   ldd ./target/release/oas-image-viewer
    ```
 
 3. **查看详细错误**
    ```bash
-   RUST_LOG=debug ./target/release/image-viewer
+   RUST_LOG=debug ./target/release/oas-image-viewer
    ```
 
 ### 问题：无法打开某些图片
@@ -284,7 +284,7 @@ random_order = false        # 随机顺序
 
 3. **启用调试日志**
    ```bash
-   RUST_LOG=image_viewer=debug image-viewer problem-image.png
+   RUST_LOG=image_viewer=debug oas-image-viewer problem-image.png
    ```
 
 4. **检查文件权限**
@@ -339,14 +339,14 @@ random_order = false        # 随机顺序
 2. **禁用 GPU 加速**（如果需要）
    ```bash
    # Linux: 使用软件渲染
-   LIBGL_ALWAYS_SOFTWARE=1 image-viewer
+   LIBGL_ALWAYS_SOFTWARE=1 oas-image-viewer
    ```
 
 3. **调整缩放设置**（HiDPI 显示器）
    ```bash
    # Linux
    export WINIT_X11_SCALE_FACTOR=1.5
-   image-viewer
+   oas-image-viewer
    ```
 
 ### 问题：配置文件错误
@@ -359,15 +359,15 @@ random_order = false        # 随机顺序
 1. **重置配置文件**
    ```bash
    # Linux
-   mv ~/.config/image-viewer/config.toml ~/.config/image-viewer/config.toml.bak
+   mv ~/.config/oas-image-viewer/config.toml ~/.config/oas-image-viewer/config.toml.bak
    
    # macOS
-   mv ~/Library/Application\ Support/com.imageviewer.image-viewer/config.toml \
-      ~/Library/Application\ Support/com.imageviewer.image-viewer/config.toml.bak
+   mv ~/Library/Application\ Support/com.openappsys.oas-image-viewer/config.toml \
+      ~/Library/Application\ Support/com.openappsys.oas-image-viewer/config.toml.bak
    
    # Windows (PowerShell)
-   Move-Item "$env:APPDATA\\image-viewer\\config\\config.toml" `
-             "$env:APPDATA\\image-viewer\\config\\config.toml.bak"
+   Move-Item "$env:APPDATA\\oas-image-viewer\\config\\config.toml" `
+             "$env:APPDATA\\oas-image-viewer\\config\\config.toml.bak"
    ```
 
 2. **验证 TOML 语法**
@@ -377,10 +377,10 @@ random_order = false        # 随机顺序
 
 如果以上方案无法解决您的问题：
 
-1. 查看 [Issues](https://github.com/yourusername/image-viewer/issues) 是否已有类似报告
+1. 查看 [Issues](https://github.com/openappsys/oas-image-viewer/issues) 是否已有类似报告
 2. 开启调试模式收集日志：
    ```bash
-   RUST_LOG=debug image-viewer 2> log.txt
+   RUST_LOG=debug oas-image-viewer 2> log.txt
    ```
 3. 创建新 Issue，附上：
    - 操作系统和版本

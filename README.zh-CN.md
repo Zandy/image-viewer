@@ -1,4 +1,4 @@
-# Image Viewer
+# OAS Image Viewer
 
 一个使用 Rust 和 egui 构建的现代化、高性能图片查看器。
 
@@ -34,7 +34,7 @@
 │                     Domain 层                               │
 │  ┌─────────────────────────┐  ┌─────────────────────────┐   │
 │  │      app/mod.rs         │  │       config.rs         │   │
-│  │   (ImageViewerApp)      │  │      (配置管理)          │   │
+│  │   (OASImageViewerApp)      │  │      (配置管理)          │   │
 │  │   应用状态、事件循环      │  │    配置加载与持久化       │   │
 │  └─────────────────────────┘  └─────────────────────────┘   │
 ├─────────────────────────────────────────────────────────────┤
@@ -119,13 +119,13 @@
 ```bash
 # 克隆仓库
 git clone git@github.com:openappsys/oas-image-viewer.git
-cd image-viewer
+cd oas-image-viewer
 
 # 构建 release 版本
 cargo build --release
 
 # 运行
-./target/release/image-viewer
+./target/release/oas-image-viewer
 ```
 
 ### 预构建二进制文件
@@ -160,8 +160,8 @@ cargo build --release
 ### Linux
 ```bash
 # 赋予执行权限后运行
-chmod +x ./image-viewer
-./image-viewer
+chmod +x ./oas-image-viewer
+./oas-image-viewer
 ```
 
 > 💡 **推荐**: 使用 AppImage 格式，无需安装，双击即可运行
@@ -177,13 +177,13 @@ chmod +x ./image-viewer
 
 ```bash
 # 启动图片查看器
-image-viewer
+oas-image-viewer
 
 # 打开指定图片
-image-viewer /path/to/image.png
+oas-image-viewer /path/to/image.png
 
 # 打开目录
-image-viewer /path/to/images/
+oas-image-viewer /path/to/images/
 ```
 
 ### 快捷键
@@ -213,7 +213,7 @@ image-viewer /path/to/images/
 配置文件位置（平台特定）：
 
 - **Linux**: `~/.config/oas-image-viewer/config.toml`
-- **macOS**: `~/Library/Application Support/com.imageviewer.image-viewer/config.toml`
+- **macOS**: `~/Library/Application Support/com.openappsys.oas-image-viewer/config.toml`
 - **Windows**: `%APPDATA%\oas-image-viewer\config\config.toml`
 
 ### 配置示例
@@ -239,7 +239,7 @@ show_info_panel = true
 ### 项目结构
 
 ```
-image-viewer/
+oas-image-viewer/
 ├── src/
 │   ├── main.rs              # 应用程序入口点
 │   ├── config.rs            # 配置管理

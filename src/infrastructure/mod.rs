@@ -228,7 +228,7 @@ impl JsonStorage {
 
     /// 获取配置目录
     fn config_dir() -> Result<PathBuf> {
-        let proj_dirs = directories::ProjectDirs::from("com", "imageviewer", "oas-image-viewer")
+        let proj_dirs = directories::ProjectDirs::from("com", "openappsys", "oas-image-viewer")
             .ok_or_else(|| {
                 CoreError::technical("STORAGE_ERROR", "Failed to get project dirs".to_string())
             })?;

@@ -415,14 +415,14 @@ impl ManageConfigUseCase {
 }
 
 /// 应用程序服务 - 协调所有用例
-pub struct ImageViewerService {
+pub struct OASImageViewerService {
     pub view_use_case: ViewImageUseCase,
     pub navigate_use_case: NavigateGalleryUseCase,
     pub config_use_case: ManageConfigUseCase,
     pub state: Mutex<AppState>,
 }
 
-impl ImageViewerService {
+impl OASImageViewerService {
     /// 创建新的应用服务
     pub fn new(
         view_use_case: ViewImageUseCase,
@@ -1232,7 +1232,7 @@ mod tests {
         assert!(validated.viewer.zoom_step >= 1.01);
     }
 
-    // ImageViewerService 测试
+    // OASImageViewerService 测试
     #[test]
     fn test_oas_image_viewer_service_new() {
         struct MockImageSource;
@@ -1275,7 +1275,7 @@ mod tests {
         let navigate_use_case = NavigateGalleryUseCase;
         let config_use_case = ManageConfigUseCase::new(Arc::new(MockStorage));
 
-        let service = ImageViewerService::new(view_use_case, navigate_use_case, config_use_case);
+        let service = OASImageViewerService::new(view_use_case, navigate_use_case, config_use_case);
 
         let state = service.get_state().unwrap();
         assert_eq!(state.view.view_mode, ViewMode::Gallery);
@@ -1323,7 +1323,7 @@ mod tests {
         let navigate_use_case = NavigateGalleryUseCase;
         let config_use_case = ManageConfigUseCase::new(Arc::new(MockStorage));
 
-        let service = ImageViewerService::new(view_use_case, navigate_use_case, config_use_case);
+        let service = OASImageViewerService::new(view_use_case, navigate_use_case, config_use_case);
 
         service
             .update_state(|state| {

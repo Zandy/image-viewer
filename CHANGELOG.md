@@ -13,7 +13,7 @@ src/
 ├── main.rs              # 应用程序入口点
 ├── config.rs            # 配置管理（Domain层）
 ├── app/                 # 核心应用逻辑（Domain层）
-│   └── mod.rs           # ImageViewerApp 主控制器
+│   └── mod.rs           # OASImageViewerApp 主控制器
 ├── viewer/              # 图像查看器（Application层）
 │   └── mod.rs           # Viewer 组件
 ├── gallery/             # 图库模块（Application层）

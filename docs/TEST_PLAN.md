@@ -1,6 +1,6 @@
 # 图片查看器测试计划
 
-> **项目**：image-viewer  
+> **项目**：oas-image-viewer  
 > **技术栈**：Rust + egui  
 > **版本**：0.1.0  
 > **目标覆盖率**：整体 85%+，核心业务 90%+
@@ -337,7 +337,7 @@ jobs:
 
 **Codecov 徽章：**
 ```markdown
-[![codecov](https://codecov.io/gh/yourusername/image-viewer/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/image-viewer)
+[![codecov](https://codecov.io/gh/openappsys/oas-image-viewer/branch/main/graph/badge.svg)](https://codecov.io/gh/openappsys/oas-image-viewer)
 ```
 
 ---

@@ -1,34 +1,34 @@
 Windows Registry Editor Version 5.00
 
-; Image-Viewer Context Menu Unregistration
-; This file removes "Open with Image-Viewer" from the right-click context menu
+; OAS-Image-Viewer Context Menu Unregistration
+; This file removes "Open with OAS-Image-Viewer" from the right-click context menu
 
 ; PNG Files
-[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.png\shell\OpenWithImageViewer]
+[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.png\shell\OpenWithOASImageViewer]
 
 ; JPEG/JPG Files
-[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.jpg\shell\OpenWithImageViewer]
-[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.jpeg\shell\OpenWithImageViewer]
+[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.jpg\shell\OpenWithOASImageViewer]
+[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.jpeg\shell\OpenWithOASImageViewer]
 
 ; GIF Files
-[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.gif\shell\OpenWithImageViewer]
+[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.gif\shell\OpenWithOASImageViewer]
 
 ; WebP Files
-[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.webp\shell\OpenWithImageViewer]
+[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.webp\shell\OpenWithOASImageViewer]
 
 ; TIFF Files
-[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.tiff\shell\OpenWithImageViewer]
-[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.tif\shell\OpenWithImageViewer]
+[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.tiff\shell\OpenWithOASImageViewer]
+[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.tif\shell\OpenWithOASImageViewer]
 
 ; BMP Files
-[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.bmp\shell\OpenWithImageViewer]
+[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.bmp\shell\OpenWithOASImageViewer]
 
 ; ICO Files
-[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.ico\shell\OpenWithImageViewer]
+[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.ico\shell\OpenWithOASImageViewer]
 
 ; HEIC/HEIF Files
-[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.heic\shell\OpenWithImageViewer]
-[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.heif\shell\OpenWithImageViewer]
+[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.heic\shell\OpenWithOASImageViewer]
+[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.heif\shell\OpenWithOASImageViewer]
 
 ; AVIF Files
-[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.avif\shell\OpenWithImageViewer]
+[-HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\.avif\shell\OpenWithOASImageViewer]

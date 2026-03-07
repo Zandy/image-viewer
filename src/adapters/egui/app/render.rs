@@ -102,11 +102,11 @@ impl EguiApp {
 
         let response = window.show(ctx, |ui| {
             ui.vertical_centered(|ui| {
-                ui.heading("Image-Viewer");
+                ui.heading("OAS Image Viewer");
                 ui.add_space(10.0);
                 ui.label("版本: v0.3.0");
                 ui.add_space(5.0);
-                ui.label("© 2026 Image-Viewer Contributors");
+                ui.label("© 2026 OAS Image Viewer Contributors");
                 ui.add_space(5.0);
                 ui.label("许可证: MIT License");
                 ui.add_space(20.0);

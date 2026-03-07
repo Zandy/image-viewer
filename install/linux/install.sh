@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# Image-Viewer Linux Installer
-# This script installs Image-Viewer and registers it with xdg-open
+# OAS-Image-Viewer Linux Installer
+# This script installs OAS-Image-Viewer and registers it with xdg-open
 
 set -e
 
-APP_NAME="image-viewer"
+APP_NAME="oas-image-viewer"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 echo "========================================="
-echo "Image-Viewer Linux Installation"
+echo "OAS-Image-Viewer Linux Installation"
 echo "========================================="
 echo ""
 
@@ -26,7 +26,7 @@ echo "Detected distribution: $DISTRO"
 echo ""
 
 # Build release version if not exists
-if [[ ! -f "$PROJECT_DIR/target/release/image-viewer" ]]; then
+if [[ ! -f "$PROJECT_DIR/target/release/oas-image-viewer" ]]; then
     echo "Building release version..."
     cd "$PROJECT_DIR"
     cargo build --release
@@ -71,33 +71,33 @@ mkdir -p "$ICON_DIR"
 # Copy executable
 echo "Copying executable..."
 if [[ "$INSTALL_TYPE" == "system" ]]; then
-    sudo cp "$PROJECT_DIR/target/release/image-viewer" "$BIN_DIR/"
-    sudo chmod +x "$BIN_DIR/image-viewer"
+    sudo cp "$PROJECT_DIR/target/release/oas-image-viewer" "$BIN_DIR/"
+    sudo chmod +x "$BIN_DIR/oas-image-viewer"
 else
-    cp "$PROJECT_DIR/target/release/image-viewer" "$BIN_DIR/"
-    chmod +x "$BIN_DIR/image-viewer"
+    cp "$PROJECT_DIR/target/release/oas-image-viewer" "$BIN_DIR/"
+    chmod +x "$BIN_DIR/oas-image-viewer"
 fi
 
 # Install .desktop file
 echo "Installing desktop file..."
-DESKTOP_FILE="$SCRIPT_DIR/image-viewer.desktop"
+DESKTOP_FILE="$SCRIPT_DIR/oas-image-viewer.desktop"
 
 # Update Exec path in desktop file
 temp_desktop=$(mktemp)
-sed "s|Exec=image-viewer|Exec=$BIN_DIR/image-viewer|g" "$DESKTOP_FILE" > "$temp_desktop"
+sed "s|Exec=oas-image-viewer|Exec=$BIN_DIR/oas-image-viewer|g" "$DESKTOP_FILE" > "$temp_desktop"
 
 if [[ "$INSTALL_TYPE" == "system" ]]; then
-    sudo cp "$temp_desktop" "$APP_DIR/image-viewer.desktop"
-    sudo chmod +x "$APP_DIR/image-viewer.desktop"
+    sudo cp "$temp_desktop" "$APP_DIR/oas-image-viewer.desktop"
+    sudo chmod +x "$APP_DIR/oas-image-viewer.desktop"
 else
-    cp "$temp_desktop" "$APP_DIR/image-viewer.desktop"
-    chmod +x "$APP_DIR/image-viewer.desktop"
+    cp "$temp_desktop" "$APP_DIR/oas-image-viewer.desktop"
+    chmod +x "$APP_DIR/oas-image-viewer.desktop"
 fi
 rm "$temp_desktop"
 
 # Create a simple icon placeholder (256x256)
 echo "Creating icon..."
-ICON_FILE="$ICON_DIR/image-viewer.png"
+ICON_FILE="$ICON_DIR/oas-image-viewer.png"
 if command -v convert &> /dev/null; then
     # Create a simple colored icon using ImageMagick
     if [[ "$INSTALL_TYPE" == "system" ]]; then
@@ -142,12 +142,12 @@ echo "========================================="
 echo "Installation completed successfully!"
 echo "========================================="
 echo ""
-echo "Image-Viewer installed to: $BIN_DIR/image-viewer"
-echo "Desktop file installed to: $APP_DIR/image-viewer.desktop"
+echo "OAS-Image-Viewer installed to: $BIN_DIR/oas-image-viewer"
+echo "Desktop file installed to: $APP_DIR/oas-image-viewer.desktop"
 echo ""
 echo "You can now:"
-echo "  - Run 'image-viewer' from terminal"
-echo "  - Right-click image files to open with Image-Viewer"
+echo "  - Run 'oas-image-viewer' from terminal"
+echo "  - Right-click image files to open with OAS-Image-Viewer"
 echo "  - Use 'xdg-open image.png' to open images"
 echo ""
 echo "Supported formats: PNG, JPEG, GIF, WebP, TIFF, BMP"

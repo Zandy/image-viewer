@@ -70,6 +70,6 @@ jobs:
 
       - name: Check config module coverage (90%+)
         run: |
-          cargo tarpaulin --fail-under 90 --packages image-viewer --line \
+          cargo tarpaulin --fail-under 90 --packages oas-image-viewer --line \
             --exclude-files "src/app/*" --include-tests \
             2>&1 | grep -E "(config|Test)" || true

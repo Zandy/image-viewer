@@ -104,7 +104,7 @@ impl EguiApp {
             ui.vertical_centered(|ui| {
                 ui.heading("OAS Image Viewer");
                 ui.add_space(10.0);
-                ui.label("版本: v0.3.0");
+                ui.label(format!("版本: v{}", env!("CARGO_PKG_VERSION")));
                 ui.add_space(5.0);
                 ui.label("© 2026 OAS Image Viewer Contributors");
                 ui.add_space(5.0);

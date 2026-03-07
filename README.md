@@ -92,7 +92,7 @@ Core Library Layer (core/)
 ```bash
 # Clone repository
 git clone git@github.com:openappsys/oas-image-viewer.git
-cd image-viewer
+cd oas-image-viewer
 
 # Build release version
 cargo build --release
@@ -151,13 +151,13 @@ chmod +x ./oas-image-viewer
 
 ```bash
 # Launch image viewer
-image-viewer
+oas-image-viewer
 
 # Open specific image
-image-viewer /path/to/image.png
+oas-image-viewer /path/to/image.png
 
 # Open directory
-image-viewer /path/to/images/
+oas-image-viewer /path/to/images/
 
 # Show help
 image-viewer --help
@@ -191,7 +191,7 @@ image-viewer --help
 ### Configuration
 
 Configuration file location:
-- **Windows**: `%APPDATA%\image-viewer\config.toml`
+- **Windows**: `%APPDATA%\oas-image-viewer\config.toml`
 - **macOS**: `~/Library/Application Support/oas-image-viewer/config.toml`
 - **Linux**: `~/.config/oas-image-viewer/config.toml`
 

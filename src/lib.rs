@@ -1,4 +1,4 @@
-//! Image-Viewer - 一个现代化的图片查看器
+//! OAS-Image-Viewer - 一个现代化的图片查看器
 //!
 //! 采用 Clean Architecture 架构：
 //! - core: 纯业务逻辑，零外部依赖

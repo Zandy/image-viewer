@@ -4,13 +4,13 @@
 <dict>
     <!-- Basic Application Info -->
     <key>CFBundleName</key>
-    <string>Image-Viewer</string>
+    <string>OAS-Image-Viewer</string>
     
     <key>CFBundleDisplayName</key>
     <string>Image Viewer</string>
     
     <key>CFBundleIdentifier</key>
-    <string>com.imageviewer.image-viewer</string>
+    <string>com.openappsys.oas-image-viewer</string>
     
     <key>CFBundleVersion</key>
     <string>0.1.0</string>
@@ -25,7 +25,7 @@
     <string>????</string>
     
     <key>CFBundleExecutable</key>
-    <string>image-viewer</string>
+    <string>oas-image-viewer</string>
     
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
@@ -180,7 +180,7 @@
     <array>
         <dict>
             <key>UTTypeIdentifier</key>
-            <string>com.imageviewer.image</string>
+            <string>com.openappsys.image</string>
             <key>UTTypeDescription</key>
             <string>Image File</string>
             <key>UTTypeConformsTo</key>

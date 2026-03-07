@@ -8,8 +8,8 @@
 //!
 //! 配置存储在平台特定目录：
 //! - Linux: ~/.config/oas-image-viewer/config.toml
-//! - macOS: ~/Library/Application Support/com.imageviewer.image-viewer/config.toml
-//! - Windows: %APPDATA%\image-viewer\config.toml
+//! - macOS: ~/Library/Application Support/com.openappsys.oas-image-viewer/config.toml
+//! - Windows: %APPDATA%\oas-image-viewer\config.toml
 //!
 //! # 最佳实践
 //!
@@ -282,8 +282,8 @@ impl Config {
     ///
     /// # Platform Paths
     /// - Linux: `~/.config/oas-image-viewer/config.toml`
-    /// - macOS: `~/Library/Application Support/com.imageviewer.image-viewer/config.toml`
-    /// - Windows: `%APPDATA%\image-viewer\config.toml`
+    /// - macOS: `~/Library/Application Support/com.openappsys.oas-image-viewer/config.toml`
+    /// - Windows: `%APPDATA%\oas-image-viewer\config.toml`
     pub fn load() -> Result<Self> {
         let config_path = Self::config_path()?;
         debug!("加载配置从: {:?}", config_path);
@@ -386,7 +386,7 @@ impl Config {
     /// assert!(path.file_name().unwrap() == "config.toml");
     /// ```
     pub fn config_path() -> Result<PathBuf> {
-        let proj_dirs = ProjectDirs::from("com", "imageviewer", "oas-image-viewer")
+        let proj_dirs = ProjectDirs::from("com", "openappsys", "oas-image-viewer")
             .context("无法确定配置目录: 未找到主目录")?;
 
         Ok(proj_dirs.config_dir().join("config.toml"))
@@ -396,7 +396,7 @@ impl Config {
     ///
     /// 用于存储其他配置文件（主题、预设等）
     pub fn config_dir() -> Result<PathBuf> {
-        let proj_dirs = ProjectDirs::from("com", "imageviewer", "oas-image-viewer")
+        let proj_dirs = ProjectDirs::from("com", "openappsys", "oas-image-viewer")
             .context("无法确定配置目录: 未找到主目录")?;
 
         Ok(proj_dirs.config_dir().to_path_buf())

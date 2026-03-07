@@ -1,9 +1,9 @@
 @echo off
 chcp 65001 >nul
-:: Image-Viewer Windows Installer
+:: OAS-Image-Viewer Windows Installer
 
 echo =========================================
-echo Image-Viewer Windows Installation
+echo OAS-Image-Viewer Windows Installation
 echo =========================================
 echo.
 
@@ -13,22 +13,22 @@ set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 :: Find executable
 set "EXE_PATH="
 
-if exist "%SCRIPT_DIR%\..\..\image-viewer.exe" (
-    set "EXE_PATH=%SCRIPT_DIR%\..\..\image-viewer.exe"
+if exist "%SCRIPT_DIR%\..\..\oas-image-viewer.exe" (
+    set "EXE_PATH=%SCRIPT_DIR%\..\..\oas-image-viewer.exe"
     goto :found
 )
 
-if exist "%SCRIPT_DIR%\image-viewer.exe" (
-    set "EXE_PATH=%SCRIPT_DIR%\image-viewer.exe"
+if exist "%SCRIPT_DIR%\oas-image-viewer.exe" (
+    set "EXE_PATH=%SCRIPT_DIR%\oas-image-viewer.exe"
     goto :found
 )
 
-if exist "%LOCALAPPDATA%\Image-Viewer\image-viewer.exe" (
-    set "EXE_PATH=%LOCALAPPDATA%\Image-Viewer\image-viewer.exe"
+if exist "%LOCALAPPDATA%\OAS-Image-Viewer\oas-image-viewer.exe" (
+    set "EXE_PATH=%LOCALAPPDATA%\OAS-Image-Viewer\oas-image-viewer.exe"
     goto :found
 )
 
-echo [ERROR] image-viewer.exe not found!
+echo [ERROR] oas-image-viewer.exe not found!
 pause
 exit /b 1
 
@@ -42,9 +42,9 @@ echo Registering context menu...
 echo $exe = "%EXE_PATH%" > "%TEMP%\register_image_viewer.ps1"
 echo $exts = "png","jpg","jpeg","gif","webp","tiff","tif","bmp","ico","heic","heif","avif" >> "%TEMP%\register_image_viewer.ps1"
 echo foreach ($ext in $exts) { >> "%TEMP%\register_image_viewer.ps1"
-echo     $path = "Software\Classes\SystemFileAssociations\." + $ext + "\shell\OpenWithImageViewer" >> "%TEMP%\register_image_viewer.ps1"
+echo     $path = "Software\Classes\SystemFileAssociations\." + $ext + "\shell\OpenWithOASImageViewer" >> "%TEMP%\register_image_viewer.ps1"
 echo     $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($path) >> "%TEMP%\register_image_viewer.ps1"
-echo     $key.SetValue("", "Open with Image-Viewer") >> "%TEMP%\register_image_viewer.ps1"
+echo     $key.SetValue("", "Open with OAS-Image-Viewer") >> "%TEMP%\register_image_viewer.ps1"
 echo     $key.SetValue("Icon", $exe) >> "%TEMP%\register_image_viewer.ps1"
 echo     $cmdKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($path + "\command") >> "%TEMP%\register_image_viewer.ps1"
 echo     $cmdKey.SetValue("", ('"' + $exe + '" "%1"')) >> "%TEMP%\register_image_viewer.ps1"

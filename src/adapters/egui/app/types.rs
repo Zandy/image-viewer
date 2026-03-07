@@ -4,7 +4,7 @@ use crate::adapters::clipboard::ClipboardManager;
 use crate::adapters::egui::widgets::{GalleryWidget, ViewerWidget};
 use crate::adapters::info_panel::InfoPanel;
 use crate::adapters::shortcuts_help::ShortcutsHelpPanel;
-use crate::core::use_cases::ImageViewerService;
+use crate::core::use_cases::OASImageViewerService;
 
 use egui::Context;
 use std::path::PathBuf;
@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 /// Egui 应用程序适配器
 pub struct EguiApp {
-    pub(crate) service: Arc<ImageViewerService>,
+    pub(crate) service: Arc<OASImageViewerService>,
     pub(crate) viewer_widget: ViewerWidget,
     pub(crate) gallery_widget: GalleryWidget,
     pub(crate) info_panel: InfoPanel,
@@ -29,7 +29,7 @@ pub struct EguiApp {
 }
 
 impl EguiApp {
-    pub fn new(cc: &eframe::CreationContext<'_>, service: Arc<ImageViewerService>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, service: Arc<OASImageViewerService>) -> Self {
         Self::configure_styles(&cc.egui_ctx);
 
         let about_window_pos = service

@@ -460,7 +460,7 @@ impl EguiApp {
 
         self.render_menu_separator(ui, style);
 
-        if self.render_menu_item(ui, "ℹ", if is_chinese_supported() { "关于 Image-Viewer" } else { "About" }, None, style, true) {
+        if self.render_menu_item(ui, "ℹ", if is_chinese_supported() { "关于 OAS Image Viewer" } else { "About" }, None, style, true) {
             self.show_about = true;
             clicked = true;
         }

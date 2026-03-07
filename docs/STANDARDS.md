@@ -1,7 +1,7 @@
-# Image-Viewer 项目规范
+# OAS-Image-Viewer 项目规范
 
 **记录时间**: 2026-02-28  
-**项目路径**: ~/projects/image-viewer/  
+**项目路径**: ~/projects/oas-image-viewer/  
 **状态**: 生效中
 
 ---

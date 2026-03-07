@@ -1,4 +1,4 @@
-# Image-Viewer 打包指南
+# OAS-Image-Viewer 打包指南
 
 本文档详细说明如何在 Windows、macOS、Linux 三个平台分别打包生成发布包。
 
@@ -52,35 +52,35 @@
 
 ```powershell
 # 克隆仓库
-git clone https://github.com/yourusername/image-viewer.git
-cd image-viewer
+git clone https://github.com/openappsys/oas-image-viewer.git
+cd oas-image-viewer
 
 # 构建 Release 版本
 cargo build --release
 
 # 验证构建结果
-ls target\release\image-viewer.exe
+ls target\release\oas-image-viewer.exe
 
 # 打包为 ZIP
 # 创建发布目录
-mkdir -p dist\image-viewer-v0.1.0-windows-x86_64
-copy target\release\image-viewer.exe dist\image-viewer-v0.1.0-windows-x86_64\
-copy README.md dist\image-viewer-v0.1.0-windows-x86_64\
-copy LICENSE dist\image-viewer-v0.1.0-windows-x86_64\
+mkdir -p dist\oas-image-viewer-v0.1.0-windows-x86_64
+copy target\release\oas-image-viewer.exe dist\oas-image-viewer-v0.1.0-windows-x86_64\
+copy README.md dist\oas-image-viewer-v0.1.0-windows-x86_64\
+copy LICENSE dist\oas-image-viewer-v0.1.0-windows-x86_64\
 
 # 压缩为 ZIP
 cd dist
-7z a ..\image-viewer-v0.1.0-windows-x86_64.zip image-viewer-v0.1.0-windows-x86_64\
+7z a ..\oas-image-viewer-v0.1.0-windows-x86_64.zip oas-image-viewer-v0.1.0-windows-x86_64\
 
 # 生成 MSI 安装包（可选）
-cargo wix --no-build --output target/wix/image-viewer.msi
+cargo wix --no-build --output target/wix/oas-image-viewer.msi
 ```
 
 #### 输出位置
 
-- 可执行文件：`target\release\image-viewer.exe`
-- ZIP 包：`image-viewer-v0.1.0-windows-x86_64.zip`
-- MSI 安装包：`target\wix\image-viewer.msi`
+- 可执行文件：`target\release\oas-image-viewer.exe`
+- ZIP 包：`oas-image-viewer-v0.1.0-windows-x86_64.zip`
+- MSI 安装包：`target\wix\oas-image-viewer.msi`
 
 ---
 
@@ -123,15 +123,15 @@ cargo wix --no-build --output target/wix/image-viewer.msi
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/image-viewer.git
-cd image-viewer
+git clone https://github.com/openappsys/oas-image-viewer.git
+cd oas-image-viewer
 
 # 构建 Release 版本
 cargo build --release
 
 # 验证构建结果
-ls -la target/release/image-viewer
-file target/release/image-viewer
+ls -la target/release/oas-image-viewer
+file target/release/oas-image-viewer
 ```
 
 **特定架构构建：**
@@ -153,14 +153,14 @@ VERSION="0.1.0"
 ARCH="$(uname -m)"  # x86_64 或 arm64
 
 # 创建目录结构
-mkdir -p dist/image-viewer-v${VERSION}-macos-${ARCH}
-cp target/release/image-viewer dist/image-viewer-v${VERSION}-macos-${ARCH}/
-cp README.md dist/image-viewer-v${VERSION}-macos-${ARCH}/
-cp LICENSE dist/image-viewer-v${VERSION}-macos-${ARCH}/
+mkdir -p dist/oas-image-viewer-v${VERSION}-macos-${ARCH}
+cp target/release/oas-image-viewer dist/oas-image-viewer-v${VERSION}-macos-${ARCH}/
+cp README.md dist/oas-image-viewer-v${VERSION}-macos-${ARCH}/
+cp LICENSE dist/oas-image-viewer-v${VERSION}-macos-${ARCH}/
 
 # 打包为 tar.gz
 cd dist
-tar czvf ../image-viewer-v${VERSION}-macos-${ARCH}.tar.gz image-viewer-v${VERSION}-macos-${ARCH}/
+tar czvf ../oas-image-viewer-v${VERSION}-macos-${ARCH}.tar.gz oas-image-viewer-v${VERSION}-macos-${ARCH}/
 ```
 
 **创建 DMG 安装包：**
@@ -170,7 +170,7 @@ VERSION="0.1.0"
 ARCH="$(uname -m)"
 
 mkdir -p dist/dmg
-cp target/release/image-viewer dist/dmg/
+cp target/release/oas-image-viewer dist/dmg/
 cp README.md dist/dmg/
 cp LICENSE dist/dmg/
 
@@ -178,15 +178,15 @@ create-dmg \
   --volname "Image Viewer ${VERSION}" \
   --window-size 800 400 \
   --icon-size 100 \
-  "image-viewer-v${VERSION}-macos-${ARCH}.dmg" \
+  "oas-image-viewer-v${VERSION}-macos-${ARCH}.dmg" \
   dist/dmg/
 ```
 
 #### 输出位置
 
-- 可执行文件：`target/release/image-viewer`
-- tar.gz 包：`image-viewer-v0.1.0-macos-x86_64.tar.gz` 或 `image-viewer-v0.1.0-macos-aarch64.tar.gz`
-- DMG 安装包：`image-viewer-v0.1.0-macos-{arch}.dmg`
+- 可执行文件：`target/release/oas-image-viewer`
+- tar.gz 包：`oas-image-viewer-v0.1.0-macos-x86_64.tar.gz` 或 `oas-image-viewer-v0.1.0-macos-aarch64.tar.gz`
+- DMG 安装包：`oas-image-viewer-v0.1.0-macos-{arch}.dmg`
 
 ---
 
@@ -266,15 +266,15 @@ sudo apt-get install -y gcc-aarch64-linux-gnu
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/image-viewer.git
-cd image-viewer
+git clone https://github.com/openappsys/oas-image-viewer.git
+cd oas-image-viewer
 
 # 构建 Release 版本
 cargo build --release
 
 # 验证构建结果
-ls -la target/release/image-viewer
-file target/release/image-viewer
+ls -la target/release/oas-image-viewer
+file target/release/oas-image-viewer
 ```
 
 **aarch64 构建：**
@@ -305,20 +305,20 @@ else
 fi
 
 # 创建目录结构
-mkdir -p dist/image-viewer-v${VERSION}-linux-${ARCH}
-cp target/${TARGET}/release/image-viewer dist/image-viewer-v${VERSION}-linux-${ARCH}/
-cp README.md dist/image-viewer-v${VERSION}-linux-${ARCH}/
-cp LICENSE dist/image-viewer-v${VERSION}-linux-${ARCH}/
+mkdir -p dist/oas-image-viewer-v${VERSION}-linux-${ARCH}
+cp target/${TARGET}/release/oas-image-viewer dist/oas-image-viewer-v${VERSION}-linux-${ARCH}/
+cp README.md dist/oas-image-viewer-v${VERSION}-linux-${ARCH}/
+cp LICENSE dist/oas-image-viewer-v${VERSION}-linux-${ARCH}/
 
 # 打包为 tar.gz
 cd dist
-tar czvf ../image-viewer-v${VERSION}-linux-${ARCH}.tar.gz image-viewer-v${VERSION}-linux-${ARCH}/
+tar czvf ../oas-image-viewer-v${VERSION}-linux-${ARCH}.tar.gz oas-image-viewer-v${VERSION}-linux-${ARCH}/
 ```
 
 #### 输出位置
 
-- 可执行文件：`target/x86_64-unknown-linux-gnu/release/image-viewer`
-- tar.gz 包：`image-viewer-v0.1.0-linux-x86_64.tar.gz` 或 `image-viewer-v0.1.0-linux-aarch64.tar.gz`
+- 可执行文件：`target/x86_64-unknown-linux-gnu/release/oas-image-viewer`
+- tar.gz 包：`oas-image-viewer-v0.1.0-linux-x86_64.tar.gz` 或 `oas-image-viewer-v0.1.0-linux-aarch64.tar.gz`
 
 ---
 
@@ -396,7 +396,7 @@ gh workflow run release.yml -f version=v0.1.0
 打包完成后，可在以下位置下载：
 
 1. **GitHub Release 页面**
-   - 地址：`https://github.com/yourusername/image-viewer/releases`
+   - 地址：`https://github.com/openappsys/oas-image-viewer/releases`
    - 包含所有平台的预编译包
 
 2. **Artifacts（构建期间）**
@@ -453,7 +453,7 @@ rustup target add aarch64-unknown-linux-gnu
 cross build --release --target aarch64-unknown-linux-gnu
 
 # 验证结果
-file target/aarch64-unknown-linux-gnu/release/image-viewer
+file target/aarch64-unknown-linux-gnu/release/oas-image-viewer
 # 输出应显示：ELF 64-bit LSB executable, ARM aarch64
 ```
 
@@ -481,14 +481,14 @@ passthrough = ["RUST_BACKTRACE"]
 
 | 平台 | 格式 | 用途 | 文件名示例 |
 |------|------|------|-----------|
-| Linux x86_64 | tar.gz | 便携包 | `image-viewer-v0.1.0-linux-x86_64.tar.gz` |
-| Linux aarch64 | tar.gz | 便携包 | `image-viewer-v0.1.0-linux-aarch64.tar.gz` |
-| Windows x86_64 | zip | 便携包 | `image-viewer-v0.1.0-windows-x86_64.zip` |
-| Windows x86_64 | msi | 安装包 | `image-viewer.msi` |
-| macOS x86_64 | tar.gz | 便携包 | `image-viewer-v0.1.0-macos-x86_64.tar.gz` |
-| macOS aarch64 | tar.gz | 便携包 | `image-viewer-v0.1.0-macos-aarch64.tar.gz` |
-| macOS x86_64 | dmg | 安装包 | `image-viewer-v0.1.0-macos-x86_64.dmg` |
-| macOS aarch64 | dmg | 安装包 | `image-viewer-v0.1.0-macos-aarch64.dmg` |
+| Linux x86_64 | tar.gz | 便携包 | `oas-image-viewer-v0.1.0-linux-x86_64.tar.gz` |
+| Linux aarch64 | tar.gz | 便携包 | `oas-image-viewer-v0.1.0-linux-aarch64.tar.gz` |
+| Windows x86_64 | zip | 便携包 | `oas-image-viewer-v0.1.0-windows-x86_64.zip` |
+| Windows x86_64 | msi | 安装包 | `oas-image-viewer.msi` |
+| macOS x86_64 | tar.gz | 便携包 | `oas-image-viewer-v0.1.0-macos-x86_64.tar.gz` |
+| macOS aarch64 | tar.gz | 便携包 | `oas-image-viewer-v0.1.0-macos-aarch64.tar.gz` |
+| macOS x86_64 | dmg | 安装包 | `oas-image-viewer-v0.1.0-macos-x86_64.dmg` |
+| macOS aarch64 | dmg | 安装包 | `oas-image-viewer-v0.1.0-macos-aarch64.dmg` |
 
 ### 如何验证打包结果
 
@@ -497,7 +497,7 @@ passthrough = ["RUST_BACKTRACE"]
 **Linux/macOS：**
 
 ```bash
-file image-viewer
+file oas-image-viewer
 # x86_64 Linux 输出：
 # ELF 64-bit LSB executable, x86-64, version 1 (SYSV)
 
@@ -515,20 +515,20 @@ file image-viewer
 
 ```powershell
 # 使用 dumpbin（Visual Studio 工具）
-dumpbin /headers image-viewer.exe | findstr machine
+dumpbin /headers oas-image-viewer.exe | findstr machine
 
 # 或使用 PowerShell 检查文件属性
-[System.Reflection.AssemblyName]::GetAssemblyName("image-viewer.exe")
+[System.Reflection.AssemblyName]::GetAssemblyName("oas-image-viewer.exe")
 ```
 
 #### 2. 验证压缩包完整性
 
 ```bash
 # 测试 tar.gz
-tar tzf image-viewer-v0.1.0-linux-x86_64.tar.gz
+tar tzf oas-image-viewer-v0.1.0-linux-x86_64.tar.gz
 
 # 测试 zip
-unzip -t image-viewer-v0.1.0-windows-x86_64.zip
+unzip -t oas-image-viewer-v0.1.0-windows-x86_64.zip
 ```
 
 #### 3. 运行测试
@@ -537,21 +537,21 @@ unzip -t image-viewer-v0.1.0-windows-x86_64.zip
 # 解压并运行
 
 # Linux/macOS
-tar xzf image-viewer-v0.1.0-linux-x86_64.tar.gz
-cd image-viewer-v0.1.0-linux-x86_64
-./image-viewer --version
-./image-viewer --help
+tar xzf oas-image-viewer-v0.1.0-linux-x86_64.tar.gz
+cd oas-image-viewer-v0.1.0-linux-x86_64
+./oas-image-viewer --version
+./oas-image-viewer --help
 
 # Windows
-Expand-Archive -Path image-viewer-v0.1.0-windows-x86_64.zip -DestinationPath .
-cd image-viewer-v0.1.0-windows-x86_64
-.\image-viewer.exe --version
+Expand-Archive -Path oas-image-viewer-v0.1.0-windows-x86_64.zip -DestinationPath .
+cd oas-image-viewer-v0.1.0-windows-x86_64
+.\oas-image-viewer.exe --version
 ```
 
 #### 4. 检查文件大小
 
 ```bash
-ls -lh image-viewer-v*.{tar.gz,zip,dmg,msi}
+ls -lh oas-image-viewer-v*.{tar.gz,zip,dmg,msi}
 ```
 
 ---
@@ -666,7 +666,7 @@ sudo apt-get install libgtk-3-0
 **解决**：
 ```bash
 # 临时允许（不推荐长期使用）
-sudo xattr -rd com.apple.quarantine /path/to/image-viewer
+sudo xattr -rd com.apple.quarantine /path/to/oas-image-viewer
 
 # 或在系统设置 → 隐私与安全 → 安全性 中点击"仍要打开"
 ```
@@ -710,13 +710,13 @@ OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 cargo build --release
 
 # 打包
-mkdir -p dist/image-viewer-v${VERSION}-${OS}-${ARCH}
-cp target/release/image-viewer dist/image-viewer-v${VERSION}-${OS}-${ARCH}/
-cp README.md LICENSE dist/image-viewer-v${VERSION}-${OS}-${ARCH}/
+mkdir -p dist/oas-image-viewer-v${VERSION}-${OS}-${ARCH}
+cp target/release/oas-image-viewer dist/oas-image-viewer-v${VERSION}-${OS}-${ARCH}/
+cp README.md LICENSE dist/oas-image-viewer-v${VERSION}-${OS}-${ARCH}/
 cd dist
-tar czvf ../image-viewer-v${VERSION}-${OS}-${ARCH}.tar.gz image-viewer-v${VERSION}-${OS}-${ARCH}/
+tar czvf ../oas-image-viewer-v${VERSION}-${OS}-${ARCH}.tar.gz oas-image-viewer-v${VERSION}-${OS}-${ARCH}/
 
-echo "打包完成: image-viewer-v${VERSION}-${OS}-${ARCH}.tar.gz"
+echo "打包完成: oas-image-viewer-v${VERSION}-${OS}-${ARCH}.tar.gz"
 ```
 
 #### Windows (PowerShell)
@@ -728,15 +728,15 @@ param([string]$Version = "0.1.0")
 cargo build --release
 
 # 打包
-New-Item -ItemType Directory -Force -Path "dist\image-viewer-v${Version}-windows-x86_64"
-Copy-Item "target\release\image-viewer.exe" "dist\image-viewer-v${Version}-windows-x86_64\"
-Copy-Item "README.md" "dist\image-viewer-v${Version}-windows-x86_64\"
-Copy-Item "LICENSE" "dist\image-viewer-v${Version}-windows-x86_64\"
+New-Item -ItemType Directory -Force -Path "dist\oas-image-viewer-v${Version}-windows-x86_64"
+Copy-Item "target\release\oas-image-viewer.exe" "dist\oas-image-viewer-v${Version}-windows-x86_64\"
+Copy-Item "README.md" "dist\oas-image-viewer-v${Version}-windows-x86_64\"
+Copy-Item "LICENSE" "dist\oas-image-viewer-v${Version}-windows-x86_64\"
 
 # 压缩
-Compress-Archive -Path "dist\image-viewer-v${Version}-windows-x86_64" -DestinationPath "image-viewer-v${Version}-windows-x86_64.zip" -Force
+Compress-Archive -Path "dist\oas-image-viewer-v${Version}-windows-x86_64" -DestinationPath "oas-image-viewer-v${Version}-windows-x86_64.zip" -Force
 
-Write-Host "打包完成: image-viewer-v${Version}-windows-x86_64.zip"
+Write-Host "打包完成: oas-image-viewer-v${Version}-windows-x86_64.zip"
 ```
 
 ### 平台支持矩阵

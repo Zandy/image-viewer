@@ -66,8 +66,8 @@ n
 ### 3. 克隆项目
 
 ```bash
-git clone https://github.com/yourusername/image-viewer.git
-cd image-viewer
+git clone https://github.com/openappsys/oas-image-viewer.git
+cd oas-image-viewer
 ```
 
 ### 4. 验证环境
@@ -91,7 +91,7 @@ cargo build
 ## 项目结构
 
 ```
-image-viewer/
+oas-image-viewer/
 ├── src/
 │   ├── main.rs          # 应用程序入口点
 │   ├── config.rs        # 配置管理（加载、保存、默认值）
@@ -238,7 +238,7 @@ cargo run  # 默认是 debug 构建
             "cargo": {
                 "args": ["build"],
                 "filter": {
-                    "name": "image-viewer",
+                    "name": "oas-image-viewer",
                     "kind": "bin"
                 }
             },

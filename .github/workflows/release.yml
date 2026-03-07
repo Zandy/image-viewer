@@ -152,38 +152,38 @@ jobs:
     - name: Package (Linux/Unix)
       if: matrix.archive_ext == 'tar.gz'
       run: |
-        mkdir -p dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}
-        cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
-        cp README.md LICENSE dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
+        mkdir -p dist/oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}
+        cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} dist/oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
+        cp README.md LICENSE dist/oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
         # Copy platform-specific install scripts only (Windows)
         if [ "${{ matrix.name }}" = "linux-x86_64" ] || [ "${{ matrix.name }}" = "linux-aarch64" ]; then
           if [ -d "install/linux" ]; then
-            mkdir -p dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/install
-            cp -r install/linux dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/install/
+            mkdir -p dist/oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/install
+            cp -r install/linux dist/oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/install/
           fi
         elif [ "${{ matrix.name }}" = "macos-x86_64" ] || [ "${{ matrix.name }}" = "macos-aarch64" ]; then
           if [ -d "install/macos" ]; then
-            mkdir -p dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/install
-            cp -r install/macos dist/image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/install/
+            mkdir -p dist/oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/install
+            cp -r install/macos dist/oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/install/
           fi
         fi
         cd dist
-        ${{ matrix.archive_cmd }} ../image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.${{ matrix.archive_ext }} image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
+        ${{ matrix.archive_cmd }} ../oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.${{ matrix.archive_ext }} oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}/
     
     - name: Package (Windows)
       if: matrix.archive_ext == 'zip'
       shell: pwsh
       run: |
-        New-Item -ItemType Directory -Force -Path "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}"
-        Copy-Item "target\${{ matrix.target }}\release\${{ matrix.binary_name }}" "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
-        Copy-Item "README.md" "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
-        Copy-Item "LICENSE" "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
+        New-Item -ItemType Directory -Force -Path "dist\oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}"
+        Copy-Item "target\${{ matrix.target }}\release\${{ matrix.binary_name }}" "dist\oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
+        Copy-Item "README.md" "dist\oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
+        Copy-Item "LICENSE" "dist\oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
         # Copy platform-specific install scripts only (Windows)
         if (Test-Path "install\windows") {
-          Copy-Item -Recurse -Path "install\windows" -Destination "dist\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
+          Copy-Item -Recurse -Path "install\windows" -Destination "dist\oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\"
         }
         cd dist
-        ${{ matrix.archive_cmd }} ..\image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.${{ matrix.archive_ext }} image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\
+        ${{ matrix.archive_cmd }} ..\oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.${{ matrix.archive_ext }} oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}\
     
     - name: Create .app bundle and DMG (macOS)
       if: runner.os == 'macOS'
@@ -211,7 +211,7 @@ jobs:
             <key>CFBundleDisplayName</key>
             <string>Image Viewer</string>
             <key>CFBundleIdentifier</key>
-            <string>com.imageviewer.app</string>
+            <string>com.openappsys.oas-image-viewer</string>
             <key>CFBundleVersion</key>
             <string>$VERSION</string>
             <key>CFBundleShortVersionString</key>
@@ -259,17 +259,17 @@ jobs:
             --app-drop-link 600 185 \
             --icon "$APP_BUNDLE" 200 185 \
             --eula LICENSE \
-            "image-viewer-${VERSION}-${{ matrix.name }}.dmg" \
+            "oas-image-viewer-${VERSION}-${{ matrix.name }}.dmg" \
             dist/dmg_staging/
         else
           # 备选：使用 hdiutil
           hdiutil create -volname "$APP_NAME $VERSION" \
             -srcfolder dist/dmg_staging \
             -ov -format UDZO \
-            "image-viewer-${VERSION}-${{ matrix.name }}.dmg"
+            "oas-image-viewer-${VERSION}-${{ matrix.name }}.dmg"
         fi
         
-        echo "✅ DMG created: image-viewer-${VERSION}-${{ matrix.name }}.dmg"
+        echo "✅ DMG created: oas-image-viewer-${VERSION}-${{ matrix.name }}.dmg"
       continue-on-error: true
     
     - name: Create AppImage (Linux x86_64)
@@ -288,37 +288,37 @@ jobs:
         cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} AppDir/usr/bin/
         
         # 创建 .desktop 文件
-        cat > AppDir/usr/share/applications/image-viewer.desktop << 'EOF'
+        cat > AppDir/usr/share/applications/oas-image-viewer.desktop << 'EOF'
         [Desktop Entry]
         Name=Image Viewer
-        Exec=image-viewer
-        Icon=image-viewer
+        Exec=oas-image-viewer
+        Icon=oas-image-viewer
         Type=Application
         Categories=Graphics;Viewer;
         Comment=Simple and fast image viewer
         EOF
         
         # 复制图标（如果有）或使用默认
-        touch AppDir/usr/share/icons/hicolor/256x256/apps/image-viewer.png
+        touch AppDir/usr/share/icons/hicolor/256x256/apps/oas-image-viewer.png
         
         # 创建 AppRun 链接
-        ln -s usr/bin/image-viewer AppDir/AppRun
+        ln -s usr/bin/oas-image-viewer AppDir/AppRun
         
         # 构建 AppImage
         ./linuxdeploy.AppImage --appdir AppDir --output appimage
         
         # 重命名 AppImage
-        mv Image_Viewer*.AppImage image-viewer-${{ needs.changelog.outputs.version }}-linux-x86_64.AppImage || \
-        mv *.AppImage image-viewer-${{ needs.changelog.outputs.version }}-linux-x86_64.AppImage
+        mv OAS_Image_Viewer*.AppImage oas-image-viewer-${{ needs.changelog.outputs.version }}-linux-x86_64.AppImage || \
+        mv *.AppImage oas-image-viewer-${{ needs.changelog.outputs.version }}-linux-x86_64.AppImage
       continue-on-error: true
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: image-viewer-${{ matrix.name }}
+        name: oas-image-viewer-${{ matrix.name }}
         path: |
-          image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.${{ matrix.archive_ext }}
-          image-viewer-${{ needs.changelog.outputs.version }}-linux-x86_64.AppImage
+          oas-image-viewer-${{ needs.changelog.outputs.version }}-${{ matrix.name }}.${{ matrix.archive_ext }}
+          oas-image-viewer-${{ needs.changelog.outputs.version }}-linux-x86_64.AppImage
           *.dmg
 
   build-msi:
@@ -357,15 +357,15 @@ jobs:
         if (-not (Test-Path "wix\main.wxs")) {
           cargo wix init --force
         }
-        cargo wix --output target/wix/image-viewer.msi --nocapture
+        cargo wix --output target/wix/oas-image-viewer.msi --nocapture
       continue-on-error: true
     
     - name: Upload MSI
       if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: image-viewer-windows-msi
-        path: target/wix/image-viewer.msi
+        name: oas-image-viewer-windows-msi
+        path: target/wix/oas-image-viewer.msi
 
   create-release:
     name: Create GitHub Release

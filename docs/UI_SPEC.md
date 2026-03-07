@@ -650,4 +650,4 @@ let adjusted_font_size = BASE_FONT_SIZE * scale_factor;
 
 *文档版本: 1.0*  
 *最后更新: 2026-02-28*  
-*适用项目: image-viewer (Rust + egui)*
+*适用项目: oas-image-viewer (Rust + egui)*

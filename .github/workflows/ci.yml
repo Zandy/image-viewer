@@ -217,7 +217,7 @@ jobs:
       shell: bash
       run: |
         if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-          ls -lh target/${{ matrix.target }}/release/image-viewer.exe || true
+          ls -lh target/${{ matrix.target }}/release/oas-image-viewer.exe || true
         else
-          ls -lh target/${{ matrix.target }}/release/image-viewer || true
+          ls -lh target/${{ matrix.target }}/release/oas-image-viewer || true
         fi

@@ -12,7 +12,7 @@
 
 运行 register-context-menu.bat
 
-脚本会自动检测 image-viewer.exe 的位置。
+脚本会自动检测 oas-image-viewer.exe 的位置。
 
 ## 支持的 Windows 版本
 

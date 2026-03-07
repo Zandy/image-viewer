@@ -147,14 +147,23 @@ impl EguiApp {
     }
 
     fn handle_zoom_keys(&mut self, ctx: &Context) {
-        if ctx.input(|i| i.key_pressed(egui::Key::Plus) && i.modifiers.ctrl) {
+        // Ctrl++ 放大
+        if ctx.input(|i| (i.key_pressed(egui::Key::Plus) || i.key_pressed(egui::Key::Equals)) && i.modifiers.ctrl) {
             self.handle_zoom_in();
         }
+        // Ctrl+- 缩小
         if ctx.input(|i| i.key_pressed(egui::Key::Minus) && i.modifiers.ctrl) {
             self.handle_zoom_out();
         }
+        // Ctrl+0 适应窗口
+        if ctx.input(|i| i.key_pressed(egui::Key::Num0) && i.modifiers.ctrl) {
+            self.handle_fit_to_window(ctx);
+        }
+        // Ctrl+1 原始尺寸
+        if ctx.input(|i| i.key_pressed(egui::Key::Num1) && i.modifiers.ctrl) {
+            self.handle_reset_zoom();
+        }
     }
-
     fn handle_enter(&mut self, ctx: &Context) {
         if !ctx.input(|i| i.key_pressed(egui::Key::Enter)) {
             return;

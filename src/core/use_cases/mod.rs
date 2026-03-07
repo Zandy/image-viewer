@@ -173,8 +173,15 @@ impl ViewImageUseCase {
     }
 
     /// 适应窗口
-    pub fn fit_to_window(&self, state: &mut ViewState) {
-        state.scale.reset();
+    pub fn fit_to_window(&self, state: &mut ViewState, window_width: f32, window_height: f32) {
+        if let Some(ref image) = state.current_image {
+            let img_w = image.metadata().width as f32;
+            let img_h = image.metadata().height as f32;
+            let scale_x = window_width / img_w;
+            let scale_y = window_height / img_h;
+            let fit_scale = scale_x.min(scale_y).min(1.0);
+            state.scale = Scale::new(fit_scale, 0.1, 20.0);
+        }
         state.offset.reset();
         state.user_zoomed = false;
     }
@@ -768,6 +775,13 @@ mod tests {
 
         let use_case = ViewImageUseCase::new(Arc::new(MockImageSource), Arc::new(MockStorage));
         let mut state = ViewState::default();
+        // 设置当前图片用于测试 fit_to_window
+        let mut image = Image::new("test", "/test.jpg");
+        let mut metadata = ImageMetadata::default();
+        metadata.width = 100;
+        metadata.height = 100;
+        image.set_metadata(metadata);
+        state.current_image = Some(image);
 
         // 先缩放和移动
         state.scale.zoom_in(2.0, 10.0);
@@ -775,7 +789,7 @@ mod tests {
         state.user_zoomed = true;
 
         // fit_to_window 应该重置
-        use_case.fit_to_window(&mut state);
+        use_case.fit_to_window(&mut state, 800.0, 600.0);
         assert!((state.scale.value() - 1.0).abs() < 0.001);
         assert_eq!(state.offset.x, 0.0);
         assert_eq!(state.offset.y, 0.0);

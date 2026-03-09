@@ -16,7 +16,7 @@ A modern, high-performance image viewer built with Rust and egui.
 - 🎨 **Modern UI**: Clean interface powered by egui
 - 🔧 **Configurable**: Customize via configuration file
 - 🖥️ **Cross-platform**: Windows, macOS, Linux support
-- 🧪 **High Test Coverage**: 451+ unit tests ensuring quality
+- 🧪 **High Test Coverage**: 265+ unit tests ensuring quality
 
 ## Architecture
 
@@ -265,7 +265,7 @@ make check       # or: cargo check && cargo clippy
 
 - **GUI Framework**: [egui](https://github.com/emilk/egui) - Immediate mode GUI
 - **Image Decoding**: [image](https://github.com/image-rs/image) - Rust image library
-- **Async Runtime**: [tokio](https://tokio.rs/) - Async runtime
+- **Parallel Processing**: [rayon](https://github.com/rayon-rs/rayon) - Parallel iterator
 - **Config**: [serde](https://serde.rs/) + [toml](https://github.com/toml-rs/toml) - Config serialization
 - **Logging**: [tracing](https://github.com/tokio-rs/tracing) - Structured logging
 

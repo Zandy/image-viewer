@@ -360,16 +360,22 @@ impl ViewerWidget {
 
     /// 渲染尺寸指示器
     fn render_dimensions_indicator(&self, ui: &mut Ui, rect: Rect, state: &ViewState) {
-        let dimensions_text = if let Some(ref image) = state.current_image {
-            let mp = image.megapixels();
-            format!(
-                "{}x{} / {:.1} MP",
-                image.metadata().width,
-                image.metadata().height,
-                mp
-            )
+        let (display_text, full_filename) = if let Some(ref image) = state.current_image {
+            let filename = image.file_name().unwrap_or("Unknown");
+            let truncated = Self::truncate_filename(&filename, 20);
+            let dimensions = format!("{}×{}", image.metadata().width, image.metadata().height);
+            
+            // 获取文件大小
+            let size_str = if let Ok(metadata) = std::fs::metadata(image.path()) {
+                Self::format_size(metadata.len())
+            } else {
+                "-".to_string()
+            };
+            
+            let display = format!("{}  {}  {}", truncated, dimensions, size_str);
+            (display, Some(filename.to_string()))
         } else {
-            "-".to_string()
+            ("-".to_string(), None)
         };
 
         let pos = rect.left_bottom() + Vec2::new(10.0, -10.0);
@@ -378,30 +384,96 @@ impl ViewerWidget {
         let text_size = ui
             .painter()
             .layout(
-                dimensions_text.clone(),
+                display_text.clone(),
                 font.clone(),
                 Color32::WHITE,
                 f32::INFINITY,
             )
             .size();
 
-        let pill_rect = Rect::from_center_size(
-            pos + Vec2::new(text_size.x / 2.0 + 5.0, -text_size.y / 2.0 - 5.0),
+        let pill_rect = Rect::from_min_size(
+            pos + Vec2::new(0.0, -text_size.y - 10.0),
             text_size + Vec2::new(16.0, 10.0),
         );
 
+        // 检测鼠标悬停
+        let is_hovered = if let Some(pointer_pos) = ui.input(|i| i.pointer.hover_pos()) {
+            pill_rect.contains(pointer_pos)
+        } else {
+            false
+        };
+
+        // 判断是否截断（通过比较长度）
+        let is_truncated = full_filename.as_ref().map_or(false, |f| f.len() > 20);
+
+        // 显示悬浮提示（当文件名被截断且鼠标悬停时）
+        if is_hovered && is_truncated {
+            if let Some(ref full_name) = full_filename {
+                let full_text_size = ui
+                    .painter()
+                    .layout(full_name.clone(), font.clone(), Color32::WHITE, f32::INFINITY)
+                    .size();
+                
+                let tooltip_rect = Rect::from_center_size(
+                    pill_rect.center_top() - Vec2::new(0.0, full_text_size.y / 2.0 + 8.0),
+                    full_text_size + Vec2::new(32.0, 16.0),
+                );
+                
+                ui.painter().rect_filled(
+                    tooltip_rect,
+                    20.0, // pill 圆角
+                    Color32::from_rgba_premultiplied(0, 0, 0, 200),
+                );
+                
+                ui.painter().text(
+                    tooltip_rect.center(),
+                    egui::Align2::CENTER_CENTER,
+                    full_name,
+                    font.clone(),
+                    Color32::WHITE,
+                );
+            }
+        }
+
+        // 绘制主信息面板
         ui.painter().rect_filled(
             pill_rect,
-            4.0,
+            20.0, // pill 圆角
             Color32::from_rgba_premultiplied(0, 0, 0, 180),
         );
 
         ui.painter().text(
             pill_rect.center(),
             egui::Align2::CENTER_CENTER,
-            dimensions_text,
+            display_text,
             font,
             Color32::WHITE,
         );
+    }
+
+    /// 截断文件名，超过 max_len 时显示为 前15...后5
+    fn truncate_filename(name: &str, max_len: usize) -> String {
+        if name.len() <= max_len {
+            name.to_string()
+        } else {
+            format!("{}...{}", &name[..15], &name[name.len()-5..])
+        }
+    }
+
+    /// 格式化文件大小
+    fn format_size(bytes: u64) -> String {
+        const KB: u64 = 1024;
+        const MB: u64 = KB * 1024;
+        const GB: u64 = MB * 1024;
+        
+        if bytes >= GB {
+            format!("{:.1} GB", bytes as f64 / GB as f64)
+        } else if bytes >= MB {
+            format!("{:.1} MB", bytes as f64 / MB as f64)
+        } else if bytes >= KB {
+            format!("{:.1} KB", bytes as f64 / KB as f64)
+        } else {
+            format!("{} B", bytes)
+        }
     }
 }

@@ -93,10 +93,15 @@ impl EguiApp {
             let mut open_menu: Option<usize> = ui.ctx().data(|d| d.get_temp(open_menu_id));
 
             let menus = if is_chinese_supported() {
-            [("文件", "📁"), ("视图", "👁"), ("图片", "🖼"), ("帮助", "❓")]
-        } else {
-            [("File", "📁"), ("View", "👁"), ("Image", "🖼"), ("Help", "❓")]
-        };
+                [("文件", "📁"), ("视图", "👁"), ("图片", "🖼"), ("帮助", "❓")]
+            } else {
+                [
+                    ("File", "📁"),
+                    ("View", "👁"),
+                    ("Image", "🖼"),
+                    ("Help", "❓"),
+                ]
+            };
 
             let mut responses: Vec<egui::Response> = Vec::new();
 
@@ -333,7 +338,18 @@ impl EguiApp {
         ui.label(RichText::new("常用").size(11.0).color(style.shortcut_color));
         ui.add_space(4.0);
 
-        if self.render_menu_item(ui, "📂", if is_chinese_supported() { "打开..." } else { "Open..." }, Some("Ctrl+O"), style, true) {
+        if self.render_menu_item(
+            ui,
+            "📂",
+            if is_chinese_supported() {
+                "打开..."
+            } else {
+                "Open..."
+            },
+            Some("Ctrl+O"),
+            style,
+            true,
+        ) {
             self.handle_open_dialog();
             clicked = true;
         }
@@ -343,8 +359,23 @@ impl EguiApp {
         ui.label(RichText::new("操作").size(11.0).color(style.shortcut_color));
         ui.add_space(4.0);
 
-        let quit_shortcut = if cfg!(target_os = "macos") { "Cmd+Q" } else { "Alt+F4" };
-        if self.render_menu_item(ui, "❌", if is_chinese_supported() { "退出" } else { "Exit" }, Some(quit_shortcut), style, true) {
+        let quit_shortcut = if cfg!(target_os = "macos") {
+            "Cmd+Q"
+        } else {
+            "Alt+F4"
+        };
+        if self.render_menu_item(
+            ui,
+            "❌",
+            if is_chinese_supported() {
+                "退出"
+            } else {
+                "Exit"
+            },
+            Some(quit_shortcut),
+            style,
+            true,
+        ) {
             _ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             clicked = true;
         }
@@ -361,23 +392,44 @@ impl EguiApp {
         let mut clicked = false;
 
         ui.label(
-            RichText::new(if is_chinese_supported() { "视图模式" } else { "View Mode" })
-                .size(11.0)
-                .color(style.shortcut_color),
+            RichText::new(if is_chinese_supported() {
+                "视图模式"
+            } else {
+                "View Mode"
+            })
+            .size(11.0)
+            .color(style.shortcut_color),
         );
         ui.add_space(4.0);
 
-        if self.render_menu_item(ui, "🖼", if is_chinese_supported() { "图库视图" } else { "Gallery" }, Some("G"), style, true) {
-            let _ = self
+        if self.render_menu_item(
+            ui,
+            "🖼",
+            if is_chinese_supported() {
+                "图库视图"
+            } else {
+                "Gallery"
+            },
+            Some("G"),
+            style,
+            true,
+        ) {
+            if let Err(e) = self
                 .service
-                .update_state(|s| s.view.view_mode = ViewMode::Gallery);
+                .update_state(|s| s.view.view_mode = ViewMode::Gallery)
+            {
+                eprintln!("切换到图库视图失败: {}", e);
+            }
             clicked = true;
         }
 
         if self.render_menu_item(ui, "🔍", "查看器", Some("G"), style, true) {
-            let _ = self
+            if let Err(e) = self
                 .service
-                .update_state(|s| s.view.view_mode = ViewMode::Viewer);
+                .update_state(|s| s.view.view_mode = ViewMode::Viewer)
+            {
+                eprintln!("切换到查看器视图失败: {}", e);
+            }
             clicked = true;
         }
 
@@ -386,7 +438,18 @@ impl EguiApp {
         ui.label(RichText::new("显示").size(11.0).color(style.shortcut_color));
         ui.add_space(4.0);
 
-        if self.render_menu_item(ui, "⛶", if is_chinese_supported() { "全屏切换" } else { "Fullscreen" }, Some("F11"), style, true) {
+        if self.render_menu_item(
+            ui,
+            "⛶",
+            if is_chinese_supported() {
+                "全屏切换"
+            } else {
+                "Fullscreen"
+            },
+            Some("F11"),
+            style,
+            true,
+        ) {
             ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(
                 !ctx.input(|i| i.viewport().fullscreen.unwrap_or(false)),
             ));
@@ -419,7 +482,15 @@ impl EguiApp {
 
         self.render_menu_separator(ui, style);
 
-        ui.label(RichText::new(if is_chinese_supported() { "缩放" } else { "Zoom" }).size(11.0).color(style.shortcut_color));
+        ui.label(
+            RichText::new(if is_chinese_supported() {
+                "缩放"
+            } else {
+                "Zoom"
+            })
+            .size(11.0)
+            .color(style.shortcut_color),
+        );
         ui.add_space(4.0);
 
         if self.render_menu_item(ui, "🔍+", "放大", Some("Ctrl++"), style, true) {
@@ -460,7 +531,18 @@ impl EguiApp {
 
         self.render_menu_separator(ui, style);
 
-        if self.render_menu_item(ui, "ℹ", if is_chinese_supported() { "关于 OAS Image Viewer" } else { "About" }, None, style, true) {
+        if self.render_menu_item(
+            ui,
+            "ℹ",
+            if is_chinese_supported() {
+                "关于 OAS Image Viewer"
+            } else {
+                "About"
+            },
+            None,
+            style,
+            true,
+        ) {
             self.show_about = true;
             clicked = true;
         }

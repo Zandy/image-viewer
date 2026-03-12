@@ -11,10 +11,6 @@ use eframe::Frame;
 use egui::Context;
 use std::path::PathBuf;
 
-
-
-
-
 use crate::core::domain::{NavigationDirection, ViewMode};
 use crate::core::ports::{ClipboardPort, UiPort};
 use crate::core::use_cases::{AppState, GalleryState, ViewState};
@@ -53,10 +49,10 @@ impl EguiApp {
 
         if should_open {
             self.open_from_gallery(ctx);
-        } else {
-            let _ = self.service.update_state(|state| {
-                self.service.view_use_case.toggle_view_mode(&mut state.view);
-            });
+        } else if let Err(e) = self.service.update_state(|state| {
+            self.service.view_use_case.toggle_view_mode(&mut state.view);
+        }) {
+            eprintln!("切换视图模式失败: {}", e);
         }
     }
 
@@ -88,9 +84,11 @@ impl EguiApp {
             .unwrap_or_else(|| (PathBuf::new(), true));
 
         if !selected_path.as_os_str().is_empty() {
-            let _ = self.service.update_state(|state| {
+            if let Err(e) = self.service.update_state(|state| {
                 state.view.view_mode = ViewMode::Viewer;
-            });
+            }) {
+                eprintln!("切换到查看器模式失败: {}", e);
+            }
             self.open_image(ctx, &selected_path, fit_to_window);
         }
     }
@@ -123,9 +121,11 @@ impl EguiApp {
 
     fn handle_f_key(&mut self, ctx: &Context) {
         if ctx.input(|i| i.key_pressed(egui::Key::F) && !i.modifiers.any()) {
-            let _ = self.service.update_state(|state| {
+            if let Err(e) = self.service.update_state(|state| {
                 state.config.viewer.show_info_panel = !state.config.viewer.show_info_panel;
-            });
+            }) {
+                eprintln!("切换信息面板失败: {}", e);
+            }
         }
     }
 
@@ -137,18 +137,20 @@ impl EguiApp {
         let is_fullscreen = ctx.input(|i| i.viewport().fullscreen.unwrap_or(false));
         if is_fullscreen {
             ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(false));
-        } else {
-            let _ = self.service.update_state(|state| {
-                if state.view.view_mode == ViewMode::Viewer {
-                    state.view.view_mode = ViewMode::Gallery;
-                }
-            });
+        } else if let Err(e) = self.service.update_state(|state| {
+            if state.view.view_mode == ViewMode::Viewer {
+                state.view.view_mode = ViewMode::Gallery;
+            }
+        }) {
+            eprintln!("切换到图库模式失败: {}", e);
         }
     }
 
     fn handle_zoom_keys(&mut self, ctx: &Context) {
         // Ctrl++ 放大
-        if ctx.input(|i| (i.key_pressed(egui::Key::Plus) || i.key_pressed(egui::Key::Equals)) && i.modifiers.ctrl) {
+        if ctx.input(|i| {
+            (i.key_pressed(egui::Key::Plus) || i.key_pressed(egui::Key::Equals)) && i.modifiers.ctrl
+        }) {
             self.handle_zoom_in();
         }
         // Ctrl+- 缩小
@@ -172,13 +174,17 @@ impl EguiApp {
         // 只在窗口停止移动时保存（位置变化后）
         if self.last_saved_window_pos != Some(current_pos) {
             self.last_saved_window_pos = Some(current_pos);
-            let _ = self.service.update_state(|state| {
+            if let Err(e) = self.service.update_state(|state| {
                 state.config.window.x = Some(current_pos.x);
                 state.config.window.y = Some(current_pos.y);
-            });
+            }) {
+                eprintln!("保存窗口位置失败: {}", e);
+            }
             // 使用 request_save 启用防抖（500ms延迟）
             if let Ok(state) = self.service.get_state() {
-                let _ = self.service.config_use_case.request_save(&state.config);
+                if let Err(e) = self.service.config_use_case.request_save(&state.config) {
+                    eprintln!("请求保存配置失败: {}", e);
+                }
             }
         }
     }
@@ -246,32 +252,71 @@ impl eframe::App for EguiApp {
             style.spacing.button_padding = egui::vec2(12.0, 8.0);
         });
 
+        // 阶段1: 处理输入
+        let (clicked_image, double_clicked_viewer) = self.process_input(ctx);
+
+        // 阶段2: 渲染内容
+        let central_response = self.render_content(ctx, _frame);
+
+        // 阶段3: 处理交互
+        self.handle_interactions(ctx, clicked_image, double_clicked_viewer);
+
+        // 阶段4: 渲染其他UI组件
+        self.render_info_panel(ctx);
+        self.render_context_menu(ctx, &central_response.response);
+        self.render_drag_overlay(ctx);
+        self.render_about_window(ctx);
+        self.render_shortcuts_help(ctx);
+    }
+
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        if let Err(e) = self.service.update_state(|state| {
+            if let Some(pos) = self.about_window_pos {
+                state.config.viewer.about_window_pos =
+                    Some(crate::core::domain::Position::new(pos.x, pos.y));
+            }
+            if let Err(save_err) = self.service.config_use_case.save_config(&state.config) {
+                eprintln!("保存配置失败: {}", save_err);
+            } else {
+                eprintln!("配置已保存");
+            }
+        }) {
+            eprintln!("更新状态失败: {}", e);
+        }
+    }
+}
+
+impl EguiApp {
+    /// 阶段1: 处理输入 - 处理所有输入相关逻辑
+    fn process_input(&mut self, ctx: &Context) -> (Option<PathBuf>, bool) {
         self.save_window_position(ctx);
         self.gallery_widget.init(ctx);
         self.process_pending_files(ctx);
         self.handle_shortcuts(ctx);
         self.handle_drops(ctx);
 
-        let mut clicked_image: Option<PathBuf> = None;
-        let mut double_clicked_viewer = false;
+        (None, false)
+    }
 
+    /// 阶段2: 渲染内容 - 渲染中央面板（图库或查看器）
+    fn render_content(&mut self, ctx: &Context, _frame: &mut Frame) -> egui::InnerResponse<()> {
         self.render_menu_bar(ctx, _frame);
 
         let texture_ref = self.current_texture.as_ref();
 
-        let central_response = egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show(ctx, |ui| {
             let mut state = self.service.get_state().unwrap_or_default();
 
             match state.view.view_mode {
                 ViewMode::Gallery => {
                     if let Some(index) = self.gallery_widget.ui(ui, &state.gallery) {
                         if let Some(image) = state.gallery.gallery.get_image(index) {
-                            clicked_image = Some(image.path().to_path_buf());
+                            self.pending_clicked_image = Some(image.path().to_path_buf());
                         }
                     }
                 }
                 ViewMode::Viewer => {
-                    double_clicked_viewer = self.viewer_widget.ui(
+                    self.pending_double_click = self.viewer_widget.ui(
                         ui,
                         &mut state.view,
                         &state.config.viewer,
@@ -280,16 +325,29 @@ impl eframe::App for EguiApp {
                 }
             }
 
-            let _ = self.service.update_state(|s| *s = state);
-        });
+            if let Err(e) = self.service.update_state(|s| *s = state) {
+                eprintln!("更新状态失败: {}", e);
+            }
+        })
+    }
 
-        if double_clicked_viewer {
+    /// 阶段3: 处理交互 - 处理用户交互结果
+    fn handle_interactions(
+        &mut self,
+        ctx: &Context,
+        _clicked_image: Option<PathBuf>,
+        _double_clicked_viewer: bool,
+    ) {
+        // 处理双击全屏
+        if self.pending_double_click {
+            self.pending_double_click = false;
             ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(
                 !ctx.input(|i| i.viewport().fullscreen.unwrap_or(false)),
             ));
         }
 
-        if let Some(ref path) = clicked_image {
+        // 处理图库点击图片
+        if let Some(ref path) = self.pending_clicked_image.take() {
             self.load_and_set_image(ctx, path);
 
             let rect = ctx.viewport_rect();
@@ -300,7 +358,7 @@ impl eframe::App for EguiApp {
                 .unwrap_or(true);
 
             let path = path.clone();
-            let _ = self.service.update_state(|state| {
+            if let Err(e) = self.service.update_state(|state| {
                 let _ = self.service.view_use_case.open_image(
                     &path,
                     &mut state.view,
@@ -308,28 +366,12 @@ impl eframe::App for EguiApp {
                     Some(rect.height()),
                     fit_to_window,
                 );
-            });
-        }
-
-        self.render_info_panel(ctx);
-        self.render_context_menu(ctx, &central_response.response);
-        self.render_drag_overlay(ctx);
-        self.render_about_window(ctx);
-        self.render_shortcuts_help(ctx);
-    }
-
-    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-        let _ = self.service.update_state(|state| {
-            if let Some(pos) = self.about_window_pos {
-                state.config.viewer.about_window_pos =
-                    Some(crate::core::domain::Position::new(pos.x, pos.y));
+            }) {
+                eprintln!("从图库打开图片失败 '{}': {}", path.display(), e);
             }
-            let _ = self.service.config_use_case.save_config(&state.config);
-        });
+        }
     }
-}
 
-impl EguiApp {
     /// 渲染右键菜单
     fn render_context_menu(&mut self, _ctx: &Context, response: &egui::Response) {
         let Ok(state) = self.service.get_state() else {

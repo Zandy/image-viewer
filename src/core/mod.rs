@@ -185,9 +185,7 @@ mod tests {
     }
 
     #[test]
-    fn test_version_constant() {
-        
-    }
+    fn test_version_constant() {}
 
     #[test]
     fn test_core_error_equality() {

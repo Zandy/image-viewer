@@ -129,9 +129,11 @@ impl EguiApp {
         let closed_by_user = self.info_panel.ui(ctx);
 
         if closed_by_user {
-            let _ = self.service.update_state(|state| {
+            if let Err(e) = self.service.update_state(|state| {
                 state.config.viewer.show_info_panel = false;
-            });
+            }) {
+                eprintln!("关闭信息面板失败: {}", e);
+            }
         }
     }
 

@@ -128,7 +128,11 @@ impl ShortcutsHelpPanel {
                             ui.add_space(6.0);
 
                             // 其他操作
-                            render_shortcut_category(ui, "🔧 其他", &[("?", "显示/隐藏此帮助面板")]);
+                            render_shortcut_category(
+                                ui,
+                                "🔧 其他",
+                                &[("?", "显示/隐藏此帮助面板")],
+                            );
                         });
 
                         ui.add_space(12.0);

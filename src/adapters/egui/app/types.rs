@@ -27,6 +27,9 @@ pub struct EguiApp {
     pub(crate) about_window_pos: Option<egui::Pos2>,
     pub(crate) last_context_menu_result: Option<String>,
     pub(crate) last_saved_window_pos: Option<egui::Pos2>,
+    // 交互状态（用于拆分 update 函数）
+    pub(crate) pending_clicked_image: Option<PathBuf>,
+    pub(crate) pending_double_click: bool,
 }
 
 impl EguiApp {
@@ -64,6 +67,9 @@ impl EguiApp {
             clipboard_manager: ClipboardManager::new(),
             last_context_menu_result: None,
             last_saved_window_pos,
+            // 初始化交互状态
+            pending_clicked_image: None,
+            pending_double_click: false,
         }
     }
 

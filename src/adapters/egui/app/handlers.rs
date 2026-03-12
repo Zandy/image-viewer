@@ -12,10 +12,18 @@ impl EguiApp {
     pub(crate) fn handle_open_dialog(&mut self) {
         let dialog = crate::infrastructure::RfdFileDialog::new();
         if let Some(paths) = dialog.open_files() {
+            eprintln!("打开文件对话框选择了 {} 个文件", paths.len());
             for path in paths {
-                self.add_image_to_gallery(&path);
-                self.pending_files.push(path);
+                if path.exists() {
+                    eprintln!("添加图片: {:?}", path);
+                    self.add_image_to_gallery(&path);
+                    self.pending_files.push(path);
+                } else {
+                    eprintln!("文件路径无效: {:?}", path);
+                }
             }
+        } else {
+            eprintln!("文件对话框被取消或未选择文件");
         }
     }
 
@@ -26,10 +34,12 @@ impl EguiApp {
             .unwrap_or("unknown")
             .to_string();
 
-        let _ = self.service.update_state(|state| {
+        if let Err(e) = self.service.update_state(|state| {
             let image = crate::core::domain::Image::new(file_name, path.to_path_buf());
             state.gallery.gallery.add_image(image);
-        });
+        }) {
+            eprintln!("添加图片到图库失败: {}", e);
+        }
     }
 
     /// 处理待处理文件
@@ -53,7 +63,7 @@ impl EguiApp {
             .map(|s| s.config.viewer.fit_to_window)
             .unwrap_or(true);
 
-        let _ = self.service.update_state(|state| {
+        if let Err(e) = self.service.update_state(|state| {
             let _ = self.service.view_use_case.open_image(
                 path,
                 &mut state.view,
@@ -61,7 +71,9 @@ impl EguiApp {
                 Some(win_h),
                 fit_to_window,
             );
-        });
+        }) {
+            eprintln!("打开图片失败: {}", e);
+        }
 
         self.update_texture_cache(load_result, path_str);
     }
@@ -73,10 +85,11 @@ impl EguiApp {
     ) {
         match load_result {
             Ok((texture, width, height, rgba_data)) => {
-                self.current_texture = Some((path_str, texture));
+                self.current_texture = Some((path_str.clone(), texture));
                 self.current_texture_data = Some((width, height, rgba_data));
             }
-            Err(_) => {
+            Err(e) => {
+                eprintln!("加载图片纹理失败 '{}': {}", path_str, e);
                 self.current_texture = None;
                 self.current_texture_data = None;
             }
@@ -118,7 +131,8 @@ impl EguiApp {
                 self.current_texture = Some((path.to_string_lossy().to_string(), texture));
                 self.current_texture_data = Some((width, height, rgba_data));
             }
-            Err(_) => {
+            Err(e) => {
+                eprintln!("加载图片失败 '{}': {}", path.display(), e);
                 self.current_texture = None;
                 self.current_texture_data = None;
             }
@@ -155,6 +169,7 @@ impl EguiApp {
 
         if let Some(first_path) = image_paths.first() {
             self.pending_files.push(first_path.to_path_buf());
+            eprintln!("拖放添加图片: {}", first_path.display());
         }
 
         self.drag_hovering = false;
@@ -163,11 +178,14 @@ impl EguiApp {
     /// 导航并打开图片
     pub(crate) fn navigate_and_open(&mut self, ctx: &Context, direction: NavigationDirection) {
         // 使用 update_state 持久化导航状态
-        let _ = self.service.update_state(|state| {
-            let _ = self.service
+        if let Err(e) = self.service.update_state(|state| {
+            let _ = self
+                .service
                 .navigate_use_case
                 .navigate(&mut state.gallery, direction);
-        });
+        }) {
+            eprintln!("导航失败: {}", e);
+        }
 
         // 获取更新后的状态来读取选中的索引
         if let Ok(state) = self.service.get_state() {
@@ -206,7 +224,7 @@ impl EguiApp {
 
         let rect = ctx.viewport_rect();
 
-        let _ = self.service.update_state(|state| {
+        if let Err(e) = self.service.update_state(|state| {
             let _ = self.service.view_use_case.open_image(
                 path,
                 &mut state.view,
@@ -214,43 +232,53 @@ impl EguiApp {
                 Some(rect.height()),
                 fit_to_window,
             );
-        });
+        }) {
+            eprintln!("打开图片失败 '{}': {}", path.display(), e);
+        }
     }
 
     /// 处理放大
     pub(crate) fn handle_zoom_in(&mut self) {
-        let _ = self.service.update_state(|state| {
+        if let Err(e) = self.service.update_state(|state| {
             let max = state.config.viewer.max_scale;
             self.service
                 .view_use_case
                 .zoom_in(&mut state.view, 1.25, max);
-        });
+        }) {
+            eprintln!("放大失败: {}", e);
+        }
     }
 
     /// 处理缩小
     pub(crate) fn handle_zoom_out(&mut self) {
-        let _ = self.service.update_state(|state| {
+        if let Err(e) = self.service.update_state(|state| {
             let min = state.config.viewer.min_scale;
             self.service
                 .view_use_case
                 .zoom_out(&mut state.view, 1.25, min);
-        });
+        }) {
+            eprintln!("缩小失败: {}", e);
+        }
     }
 
     /// 重置缩放（100%原始尺寸）
     pub(crate) fn handle_reset_zoom(&mut self) {
-        let _ = self.service.update_state(|state| {
+        if let Err(e) = self.service.update_state(|state| {
             self.service.view_use_case.reset_zoom(&mut state.view);
-        });
+        }) {
+            eprintln!("重置缩放失败: {}", e);
+        }
     }
 
     /// 适应窗口
     pub(crate) fn handle_fit_to_window(&mut self, ctx: &Context) {
         let rect = ctx.viewport_rect();
-        let _ = self.service.update_state(|state| {
+        if let Err(e) = self.service.update_state(|state| {
             self.service
                 .view_use_case
                 .fit_to_window(&mut state.view, rect.width(), rect.height());
-        });
+        }) {
+            eprintln!("适应窗口失败: {}", e);
+        }
     }
 }

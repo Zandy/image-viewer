@@ -1,19 +1,19 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use anyhow::Result;
+use eframe::NativeOptions;
 use std::env;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
-use anyhow::Result;
-use eframe::NativeOptions;
 use tracing::{info, warn};
 
 use oas_image_viewer::adapters::egui::EguiApp;
 use oas_image_viewer::core::domain::Image;
 use oas_image_viewer::core::ports::{AppConfig, Storage};
 use oas_image_viewer::core::use_cases::{
-    OASImageViewerService, ManageConfigUseCase, NavigateGalleryUseCase, ViewImageUseCase,
+    ManageConfigUseCase, NavigateGalleryUseCase, OASImageViewerService, ViewImageUseCase,
 };
 use oas_image_viewer::{FsImageSource, JsonStorage};
 

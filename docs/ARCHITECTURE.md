@@ -98,7 +98,7 @@ OAS-Image-Viewer 采用 **Clean Architecture（整洁架构）** 设计，将应
 │  │  │ Gallery    │  │  │Storage     │  │  │NavigateGallery│  │
 │  │  │ Scale      │  │  │UiPort      │  │  │ManageConfig │ │   │
 │  │  │ Position   │  │  │ClipboardPort│ │  │OASImageViewerSvc│  │
-│  │  │ ViewerState│  │  │FileDialogPort│ │  └─────────────┘ │   │
+│  │  │ ViewState │  │  │FileDialogPort│ │  └─────────────┘ │   │
 │  │  └────────────┘  │  └────────────┘  │                   │   │
 │  └─────────────────────────────────────────────────────────┘   │
 ├─────────────────────────────────────────────────────────────────┤
@@ -285,15 +285,17 @@ src/
 
 ### 模块职责矩阵
 
-| 模块 | 所属层 | 主要职责 | 测试数量 |
-|------|--------|----------|----------|
-| `core/domain` | Core | 实体、值对象 | 100+ |
-| `core/ports` | Core | 端口接口定义 | 30+ |
-| `core/use_cases` | Core | 业务用例 | 80+ |
-| `infrastructure` | Infrastructure | Ports 实现 | 60+ |
-| `adapters/egui` | Adapters | UI 适配 | 50+ |
-| `clipboard` | Infrastructure | 剪贴板 | 30+ |
-| `utils` | Infrastructure | 工具函数 | 40+ |
+| 模块 | 所属层 | 主要职责 |
+|------|--------|----------|
+| `core/domain` | Core | 实体、值对象、错误类型 |
+| `core/ports` | Core | 端口接口定义 |
+| `core/use_cases` | Core | 业务用例、状态管理 |
+| `infrastructure` | Infrastructure | Ports 实现、配置持久化 |
+| `adapters/egui` | Adapters | UI 适配 |
+| `clipboard` | Infrastructure | 剪贴板 |
+| `utils` | Infrastructure | 工具函数 |
+
+> **总计**: 265+ 单元测试，Core 层覆盖率 >80%
 
 ### 关键数据结构
 
@@ -574,13 +576,15 @@ pub struct CommandHistory {
 
 ### 单元测试分布
 
-| 模块 | 测试文件 | 测试数量 | 覆盖率重点 |
-|------|---------|---------|-----------|
-| core/domain | 内嵌 tests | 100+ | 实体行为、值对象验证 |
-| core/ports | 内嵌 tests | 30+ | 接口契约 |
-| core/use_cases | 内嵌 tests | 80+ | 业务逻辑、状态转换 |
-| infrastructure | 内嵌 tests | 60+ | Ports 实现、错误处理 |
-| adapters/egui | 内嵌 tests | 50+ | 事件处理、状态同步 |
+| 模块 | 测试方式 | 覆盖率重点 |
+|------|---------|-----------|
+| core/domain | 内嵌 tests | 实体行为、值对象验证 |
+| core/ports | 内嵌 tests | 接口契约 |
+| core/use_cases | 内嵌 tests | 业务逻辑、状态转换 |
+| infrastructure | 内嵌 tests | Ports 实现、错误处理 |
+| adapters/egui | 内嵌 tests | 事件处理、状态同步 |
+
+> **总计**: 265+ 单元测试
 
 ### Core 层测试优势
 

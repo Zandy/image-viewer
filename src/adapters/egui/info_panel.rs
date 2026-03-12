@@ -3,6 +3,8 @@
 //! 显示图片的详细信息，包括文件信息、图片属性和EXIF元数据。
 //! 支持异步加载EXIF数据，不阻塞UI。
 
+use crate::adapters::egui::i18n::get_text;
+use crate::core::domain::Language;
 use crate::utils::format_file_size;
 use egui::{Context, Frame, RichText, ScrollArea, SidePanel, Widget};
 use std::path::{Path, PathBuf};
@@ -202,7 +204,7 @@ impl InfoPanel {
 
     /// 渲染信息面板
     /// 返回：如果本帧用户点击了右上角关闭按钮，则返回 true
-    pub fn ui(&mut self, ctx: &Context) -> bool {
+    pub fn ui(&mut self, ctx: &Context, language: Language) -> bool {
         // 检查是否有新的EXIF数据
         self.check_exif_receiver();
 
@@ -240,7 +242,7 @@ impl InfoPanel {
                             bottom: 0,
                         })
                         .show(ui, |ui| {
-                            ui.label(egui::RichText::new("📋 图像信息").size(16.0));
+                            ui.label(egui::RichText::new(format!("📋 {}", get_text("image_info", language))).size(16.0));
                         });
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button("×").clicked() {
@@ -257,18 +259,13 @@ impl InfoPanel {
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {
                         if let Some(ref info) = self.current_info {
-                            self.render_info_content(ui, info);
+                            self.render_info_content(ui, info, language);
                         } else {
                             ui.vertical_centered(|ui| {
                                 ui.add_space(50.0);
                                 ui.label(
-                                    RichText::new("未选择图像")
+                                    RichText::new(get_text("no_image", language))
                                         .color(ui.style().visuals.weak_text_color()),
-                                );
-                                ui.label(
-                                    RichText::new("打开图像以查看详细信息")
-                                        .color(ui.style().visuals.weak_text_color())
-                                        .size(12.0),
                                 );
                             });
                         }
@@ -279,61 +276,60 @@ impl InfoPanel {
     }
 
     /// 渲染信息内容
-    fn render_info_content(&self, ui: &mut egui::Ui, info: &ImageInfo) {
+    fn render_info_content(&self, ui: &mut egui::Ui, info: &ImageInfo, language: Language) {
         // 文件信息部分
-        egui::CollapsingHeader::new("\u{1f4c1} 文件信息")
+        egui::CollapsingHeader::new(format!("📁 {}", get_text("file_info", language)))
             .default_open(true)
             .show(ui, |ui| {
-                render_label_value(ui, "文件名:", &info.file_name);
-                render_label_value(ui, "路径:", &format_path(&info.path));
-                render_label_value(ui, "大小:", &format_file_size(info.file_size));
+                render_label_value(ui, &format!("{}: ", get_text("file_name", language)), &info.file_name);
+                render_label_value(ui, &format!("{}: ", get_text("file_size", language)), &format_file_size(info.file_size));
                 if let Some(ref time) = info.modified_time {
-                    render_label_value(ui, "修改时间:", time);
+                    render_label_value(ui, &format!("{}: ", get_text("modified_time", language)), time);
                 }
             });
 
         ui.add_space(8.0);
 
         // 图像信息部分
-        egui::CollapsingHeader::new("\u{1f5bc} 图像信息")
+        egui::CollapsingHeader::new(format!("🖼 {}", get_text("image_info", language)))
             .default_open(true)
             .show(ui, |ui| {
-                render_label_value(ui, "格式:", &info.format);
+                render_label_value(ui, &format!("{}: ", get_text("format", language)), &info.format);
                 render_label_value(
                     ui,
-                    "尺寸:",
-                    &format!("{} x {} 像素", info.width, info.height),
+                    &format!("{}: ", get_text("dimensions", language)),
+                    &format!("{} x {} px", info.width, info.height),
                 );
                 let mp = (info.width as f64 * info.height as f64) / 1_000_000.0;
-                render_label_value(ui, "百万像素:", &format!("{:.2} MP", mp));
+                render_label_value(ui, &format!("{}: ", get_text("megapixels", language)), &format!("{:.2} MP", mp));
                 if let Some(depth) = info.bit_depth {
-                    render_label_value(ui, "位深度:", &format!("{} bit", depth));
+                    render_label_value(ui, &format!("{}: ", get_text("bit_depth", language)), &format!("{} bit", depth));
                 }
                 if let Some(ref space) = info.color_space {
-                    render_label_value(ui, "色彩空间:", space);
+                    render_label_value(ui, &format!("{}: ", get_text("color_space", language)), space);
                 }
             });
 
         ui.add_space(8.0);
 
         // EXIF信息部分
-        egui::CollapsingHeader::new("\u{1f4f7} EXIF 信息")
+        egui::CollapsingHeader::new(format!("📷 {}", get_text("exif_info", language)))
             .default_open(true)
             .show(ui, |ui| {
                 if self.loading_exif {
                     ui.horizontal(|ui| {
                         ui.spinner();
                         ui.label(
-                            RichText::new("正在加载EXIF数据...")
+                            RichText::new(get_text("loading_exif", language))
                                 .color(ui.style().visuals.weak_text_color())
                                 .size(12.0),
                         );
                     });
                 } else if let Some(ref exif) = info.exif {
-                    self.render_exif_content(ui, exif);
+                    self.render_exif_content(ui, exif, language);
                 } else {
                     ui.label(
-                        RichText::new("无EXIF数据")
+                        RichText::new(get_text("no_exif", language))
                             .color(ui.style().visuals.weak_text_color())
                             .size(12.0),
                     );
@@ -342,49 +338,49 @@ impl InfoPanel {
     }
 
     /// 渲染EXIF内容
-    fn render_exif_content(&self, ui: &mut egui::Ui, exif: &ExifData) {
+    fn render_exif_content(&self, ui: &mut egui::Ui, exif: &ExifData, language: Language) {
         // 相机信息
         if exif.camera_make.is_some() || exif.camera_model.is_some() {
             let camera =
                 format_camera_info(exif.camera_make.as_deref(), exif.camera_model.as_deref());
-            render_label_value(ui, "相机:", &camera);
+            render_label_value(ui, &format!("{}: ", get_text("camera", language)), &camera);
         }
 
         if let Some(ref lens) = exif.lens_model {
-            render_label_value(ui, "镜头:", lens);
+            render_label_value(ui, &format!("{}: ", get_text("lens", language)), lens);
         }
 
         if let Some(ref date) = exif.date_time {
-            render_label_value(ui, "拍摄时间:", date);
+            render_label_value(ui, &format!("{}: ", get_text("date_time", language)), date);
         }
 
         ui.add_space(4.0);
 
         // 曝光参数
         if let Some(iso) = exif.iso {
-            render_label_value(ui, "ISO:", &iso.to_string());
+            render_label_value(ui, &format!("{}: ", get_text("iso", language)), &iso.to_string());
         }
 
         if let Some(ref aperture) = exif.aperture {
-            render_label_value(ui, "光圈:", aperture);
+            render_label_value(ui, &format!("{}: ", get_text("aperture", language)), aperture);
         }
 
         if let Some(ref shutter) = exif.shutter_speed {
-            render_label_value(ui, "快门:", shutter);
+            render_label_value(ui, &format!("{}: ", get_text("shutter", language)), shutter);
         }
 
         if let Some(ref focal) = exif.focal_length {
-            render_label_value(ui, "焦距:", focal);
+            render_label_value(ui, &format!("{}: ", get_text("focal_length", language)), focal);
         }
 
         // GPS信息
         if exif.gps_latitude.is_some() || exif.gps_longitude.is_some() {
             ui.add_space(4.0);
             if let Some(ref lat) = exif.gps_latitude {
-                render_label_value(ui, "纬度:", lat);
+                render_label_value(ui, &format!("{}: ", get_text("gps_latitude", language)), lat);
             }
             if let Some(ref lon) = exif.gps_longitude {
-                render_label_value(ui, "经度:", lon);
+                render_label_value(ui, &format!("{}: ", get_text("gps_longitude", language)), lon);
             }
         }
     }
@@ -521,16 +517,6 @@ fn render_label_value(ui: &mut egui::Ui, label: &str, value: &str) {
     });
 }
 
-/// 格式化路径（截断长路径）
-fn format_path(path: &Path) -> String {
-    let path_str = path.display().to_string();
-    if path_str.len() > 40 {
-        format!("...{}", &path_str[path_str.len() - 37..])
-    } else {
-        path_str
-    }
-}
-
 /// 格式化相机信息
 fn format_camera_info(make: Option<&str>, model: Option<&str>) -> String {
     match (make, model) {
@@ -552,6 +538,16 @@ fn format_camera_info(make: Option<&str>, model: Option<&str>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // 测试辅助函数：格式化路径（截断长路径）
+    fn format_path(path: &Path) -> String {
+        let path_str = path.display().to_string();
+        if path_str.len() > 40 {
+            format!("...{}", &path_str[path_str.len() - 37..])
+        } else {
+            path_str
+        }
+    }
 
     // =========================================================================
     // 基础初始化测试
@@ -821,6 +817,16 @@ mod tests {
 #[cfg(test)]
 mod additional_tests {
     use super::*;
+
+    // 测试辅助函数：格式化路径（截断长路径）
+    fn format_path(path: &Path) -> String {
+        let path_str = path.display().to_string();
+        if path_str.len() > 40 {
+            format!("...{}", &path_str[path_str.len() - 37..])
+        } else {
+            path_str
+        }
+    }
 
     #[test]
     fn test_exif_data_full() {

@@ -210,7 +210,7 @@ fn run_app() -> Result<()> {
         Box::new(move |cc| {
             log_to_file("UI 初始化回调");
             // cc.egui_ctx.set_pixels_per_point(1.0);
-            setup_fonts(&cc.egui_ctx);
+            setup_fonts(&cc.egui_ctx, &config);
             log_to_file("字体设置完成");
             Ok(Box::new(EguiApp::new(cc, service_clone)))
         }),
@@ -225,7 +225,9 @@ fn run_app() -> Result<()> {
 }
 
 /// 配置字体支持，包括中文字体
-fn setup_fonts(ctx: &egui::Context) {
+/// 
+/// 无条件加载系统中文字体（如果有），不依赖于当前语言设置
+fn setup_fonts(ctx: &egui::Context, _config: &AppConfig) {
     use egui::FontFamily;
 
     let mut fonts = egui::FontDefinitions::default();
@@ -233,27 +235,8 @@ fn setup_fonts(ctx: &egui::Context) {
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        // 按优先级尝试不同平台的中文字体
-        let font_sources = [
-            // ===== macOS =====
-            "/System/Library/Fonts/PingFang.ttc",
-            "/System/Library/Fonts/Supplemental/PingFang.ttc",
-            "/Library/Fonts/PingFang.ttc",
-            "/System/Library/Fonts/STHeiti Light.ttc",
-            "/System/Library/Fonts/STHeiti Medium.ttc",
-            "/System/Library/Fonts/Hiragino Sans GB.ttc",
-            "/Library/Fonts/Hiragino Sans GB.ttc",
-            // ===== Linux =====
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
-            "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
-            "/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc",
-            // ===== Windows =====
-            "C:\\Windows\\Fonts\\msyh.ttc",
-            "C:\\Windows\\Fonts\\simhei.ttf",
-        ];
-
-        for font_path in &font_sources {
+        // 按优先级尝试不同平台的中文字体（无条件加载）
+        for font_path in oas_image_viewer::CHINESE_FONT_PATHS {
             match std::fs::read(font_path) {
                 Ok(font_data) => {
                     fonts.font_data.insert(
@@ -283,6 +266,7 @@ fn setup_fonts(ctx: &egui::Context) {
     if !font_loaded {
         warn!("未找到中文字体，界面将使用英文显示");
         info!("使用 egui 默认字体 (40KB)，仅支持英文显示");
+        oas_image_viewer::set_chinese_supported(false);
     }
 
     ctx.set_fonts(fonts);

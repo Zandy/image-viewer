@@ -148,7 +148,7 @@ mod tests {
         assert_eq!(config.window.width, 1200.0);
         assert_eq!(config.window.height, 800.0);
         assert!(!config.window.maximized);
-        assert_eq!(config.gallery.thumbnail_size, 120);
+        assert_eq!(config.gallery.thumbnail_size, 100);
         assert!(config.viewer.fit_to_window);
         assert!((config.viewer.min_scale - 0.1).abs() < 0.001);
         assert!((config.viewer.max_scale - 20.0).abs() < 0.001);
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn test_app_config_gallery_layout() {
         let config = AppConfig::default();
-        assert_eq!(config.gallery.thumbnail_size, 120);
+        assert_eq!(config.gallery.thumbnail_size, 100);
         assert_eq!(config.gallery.items_per_row, 0);
         assert!((config.gallery.grid_spacing - 12.0).abs() < 0.001);
         assert!(config.gallery.show_filenames);

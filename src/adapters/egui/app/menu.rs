@@ -1,6 +1,6 @@
 use super::types::EguiApp;
-use crate::core::domain::{NavigationDirection, ViewMode};
-use crate::is_chinese_supported;
+use crate::adapters::egui::i18n::get_text;
+use crate::core::domain::{Language, NavigationDirection, ViewMode};
 use egui::{Color32, Context, CornerRadius, RichText, Stroke, Vec2};
 
 struct MenuStyle {
@@ -48,7 +48,12 @@ impl MenuStyle {
 }
 
 impl EguiApp {
-    pub(crate) fn render_menu_bar(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+    pub(crate) fn render_menu_bar(
+        &mut self,
+        ctx: &Context,
+        _frame: &mut eframe::Frame,
+        language: Language,
+    ) {
         let is_fullscreen = ctx.input(|i| i.viewport().fullscreen.unwrap_or(false));
         if is_fullscreen {
             return;
@@ -60,7 +65,7 @@ impl EguiApp {
             .exact_height(40.0)
             .show(ctx, |ui| {
                 self.setup_modern_menu_style(ui, &style);
-                self.render_modern_menu_buttons(ui, ctx, &style);
+                self.render_modern_menu_buttons(ui, ctx, &style, language);
             });
     }
 
@@ -85,23 +90,25 @@ impl EguiApp {
         ui.spacing_mut().item_spacing = Vec2::new(4.0, 0.0);
     }
 
-    fn render_modern_menu_buttons(&mut self, ui: &mut egui::Ui, ctx: &Context, style: &MenuStyle) {
+    fn render_modern_menu_buttons(
+        &mut self,
+        ui: &mut egui::Ui,
+        ctx: &Context,
+        style: &MenuStyle,
+        language: Language,
+    ) {
         ui.horizontal_centered(|ui| {
             ui.add_space(8.0);
 
             let open_menu_id = ui.id().with("open_menu");
             let mut open_menu: Option<usize> = ui.ctx().data(|d| d.get_temp(open_menu_id));
 
-            let menus = if is_chinese_supported() {
-                [("文件", "📁"), ("视图", "👁"), ("图片", "🖼"), ("帮助", "❓")]
-            } else {
-                [
-                    ("File", "📁"),
-                    ("View", "👁"),
-                    ("Image", "🖼"),
-                    ("Help", "❓"),
-                ]
-            };
+            let menus = [
+                (get_text("menu_file", language), "📁"),
+                (get_text("menu_view", language), "👁"),
+                (get_text("menu_image", language), "🖼"),
+                (get_text("menu_help", language), "❓"),
+            ];
 
             let mut responses: Vec<egui::Response> = Vec::new();
 
@@ -158,13 +165,14 @@ impl EguiApp {
             }
 
             if let Some(idx) = open_menu {
-                self.render_modern_popup_menu(ui, ctx, idx, &responses, open_menu_id, style);
+                self.render_modern_popup_menu(ui, ctx, idx, &responses, open_menu_id, style, language);
             }
 
             ui.add_space(8.0);
         });
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn render_modern_popup_menu(
         &mut self,
         ui: &mut egui::Ui,
@@ -173,6 +181,7 @@ impl EguiApp {
         responses: &[egui::Response],
         open_menu_id: egui::Id,
         style: &MenuStyle,
+        language: Language,
     ) {
         if let Some(button) = responses.get(idx) {
             let popup_id = ui.id().with(format!("popup_{}", idx));
@@ -197,10 +206,10 @@ impl EguiApp {
                     ui.add_space(4.0);
 
                     let clicked = match idx {
-                        0 => self.render_modern_file_menu(ui, ctx, style),
-                        1 => self.render_modern_view_menu(ui, ctx, style),
-                        2 => self.render_modern_image_menu(ui, ctx, style),
-                        3 => self.render_modern_help_menu(ui, ctx, style),
+                        0 => self.render_modern_file_menu(ui, ctx, style, language),
+                        1 => self.render_modern_view_menu(ui, ctx, style, language),
+                        2 => self.render_modern_image_menu(ui, ctx, style, language),
+                        3 => self.render_modern_help_menu(ui, ctx, style, language),
                         _ => false,
                     };
 
@@ -332,20 +341,17 @@ impl EguiApp {
         ui: &mut egui::Ui,
         _ctx: &Context,
         style: &MenuStyle,
+        language: Language,
     ) -> bool {
         let mut clicked = false;
 
-        ui.label(RichText::new("常用").size(11.0).color(style.shortcut_color));
+        ui.label(RichText::new(get_text("common", language)).size(11.0).color(style.shortcut_color));
         ui.add_space(4.0);
 
         if self.render_menu_item(
             ui,
             "📂",
-            if is_chinese_supported() {
-                "打开..."
-            } else {
-                "Open..."
-            },
+            get_text("open", language),
             Some("Ctrl+O"),
             style,
             true,
@@ -356,7 +362,7 @@ impl EguiApp {
 
         self.render_menu_separator(ui, style);
 
-        ui.label(RichText::new("操作").size(11.0).color(style.shortcut_color));
+        ui.label(RichText::new(get_text("actions", language)).size(11.0).color(style.shortcut_color));
         ui.add_space(4.0);
 
         let quit_shortcut = if cfg!(target_os = "macos") {
@@ -367,11 +373,7 @@ impl EguiApp {
         if self.render_menu_item(
             ui,
             "❌",
-            if is_chinese_supported() {
-                "退出"
-            } else {
-                "Exit"
-            },
+            get_text("exit", language),
             Some(quit_shortcut),
             style,
             true,
@@ -388,28 +390,21 @@ impl EguiApp {
         ui: &mut egui::Ui,
         ctx: &Context,
         style: &MenuStyle,
+        language: Language,
     ) -> bool {
         let mut clicked = false;
 
         ui.label(
-            RichText::new(if is_chinese_supported() {
-                "视图模式"
-            } else {
-                "View Mode"
-            })
-            .size(11.0)
-            .color(style.shortcut_color),
+            RichText::new(get_text("view_mode", language))
+                .size(11.0)
+                .color(style.shortcut_color),
         );
         ui.add_space(4.0);
 
         if self.render_menu_item(
             ui,
             "🖼",
-            if is_chinese_supported() {
-                "图库视图"
-            } else {
-                "Gallery"
-            },
+            get_text("gallery", language),
             Some("G"),
             style,
             true,
@@ -423,7 +418,14 @@ impl EguiApp {
             clicked = true;
         }
 
-        if self.render_menu_item(ui, "🔍", "查看器", Some("G"), style, true) {
+        if self.render_menu_item(
+            ui,
+            "🔍",
+            get_text("viewer", language),
+            Some("G"),
+            style,
+            true,
+        ) {
             if let Err(e) = self
                 .service
                 .update_state(|s| s.view.view_mode = ViewMode::Viewer)
@@ -435,17 +437,13 @@ impl EguiApp {
 
         self.render_menu_separator(ui, style);
 
-        ui.label(RichText::new("显示").size(11.0).color(style.shortcut_color));
+        ui.label(RichText::new(get_text("display", language)).size(11.0).color(style.shortcut_color));
         ui.add_space(4.0);
 
         if self.render_menu_item(
             ui,
             "⛶",
-            if is_chinese_supported() {
-                "全屏切换"
-            } else {
-                "Fullscreen"
-            },
+            get_text("fullscreen", language),
             Some("F11"),
             style,
             true,
@@ -453,6 +451,64 @@ impl EguiApp {
             ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(
                 !ctx.input(|i| i.viewport().fullscreen.unwrap_or(false)),
             ));
+            clicked = true;
+        }
+
+        self.render_menu_separator(ui, style);
+
+        // 语言切换子菜单
+        ui.label(RichText::new(get_text("language", language)).size(11.0).color(style.shortcut_color));
+        ui.add_space(4.0);
+
+        // 中文选项
+        let chinese_label = format!("{} 中文", if language == Language::Chinese { "✓" } else { " " });
+        if self.render_menu_item(
+            ui,
+            "🇨🇳",
+            &chinese_label,
+            None,
+            style,
+            language != Language::Chinese,
+        ) {
+            if let Err(e) = self.service.update_state(|s| {
+                s.config.language = Language::Chinese;
+                // 同时更新中文字体支持标志
+                crate::set_chinese_supported(true);
+            }) {
+                tracing::error!(error = %e, "切换语言失败");
+            }
+            // 请求保存配置
+            if let Ok(state) = self.service.get_state() {
+                if let Err(e) = self.service.config_use_case.request_save(&state.config) {
+                    tracing::error!(error = %e, "请求保存配置失败");
+                }
+            }
+            clicked = true;
+        }
+
+        // 英文选项
+        let english_label = format!("{} English", if language == Language::English { "✓" } else { " " });
+        if self.render_menu_item(
+            ui,
+            "🇺🇸",
+            &english_label,
+            None,
+            style,
+            language != Language::English,
+        ) {
+            if let Err(e) = self.service.update_state(|s| {
+                s.config.language = Language::English;
+                // 同时更新中文字体支持标志
+                crate::set_chinese_supported(false);
+            }) {
+                tracing::error!(error = %e, "切换语言失败");
+            }
+            // 请求保存配置
+            if let Ok(state) = self.service.get_state() {
+                if let Err(e) = self.service.config_use_case.request_save(&state.config) {
+                    tracing::error!(error = %e, "请求保存配置失败");
+                }
+            }
             clicked = true;
         }
 
@@ -464,18 +520,33 @@ impl EguiApp {
         ui: &mut egui::Ui,
         _ctx: &Context,
         style: &MenuStyle,
+        language: Language,
     ) -> bool {
         let mut clicked = false;
 
-        ui.label(RichText::new("导航").size(11.0).color(style.shortcut_color));
+        ui.label(RichText::new(get_text("navigation", language)).size(11.0).color(style.shortcut_color));
         ui.add_space(4.0);
 
-        if self.render_menu_item(ui, "⬅", "上一张", Some("←"), style, true) {
+        if self.render_menu_item(
+            ui,
+            "⬅",
+            get_text("previous", language),
+            Some("←"),
+            style,
+            true,
+        ) {
             self.navigate_and_open(_ctx, NavigationDirection::Previous);
             clicked = true;
         }
 
-        if self.render_menu_item(ui, "➡", "下一张", Some("→"), style, true) {
+        if self.render_menu_item(
+            ui,
+            "➡",
+            get_text("next", language),
+            Some("→"),
+            style,
+            true,
+        ) {
             self.navigate_and_open(_ctx, NavigationDirection::Next);
             clicked = true;
         }
@@ -483,32 +554,56 @@ impl EguiApp {
         self.render_menu_separator(ui, style);
 
         ui.label(
-            RichText::new(if is_chinese_supported() {
-                "缩放"
-            } else {
-                "Zoom"
-            })
-            .size(11.0)
-            .color(style.shortcut_color),
+            RichText::new(get_text("zoom", language))
+                .size(11.0)
+                .color(style.shortcut_color),
         );
         ui.add_space(4.0);
 
-        if self.render_menu_item(ui, "🔍+", "放大", Some("Ctrl++"), style, true) {
+        if self.render_menu_item(
+            ui,
+            "🔍+",
+            get_text("zoom_in", language),
+            Some("Ctrl++"),
+            style,
+            true,
+        ) {
             self.handle_zoom_in();
             clicked = true;
         }
 
-        if self.render_menu_item(ui, "🔍-", "缩小", Some("Ctrl+-"), style, true) {
+        if self.render_menu_item(
+            ui,
+            "🔍-",
+            get_text("zoom_out", language),
+            Some("Ctrl+-"),
+            style,
+            true,
+        ) {
             self.handle_zoom_out();
             clicked = true;
         }
 
-        if self.render_menu_item(ui, "📐", "适应窗口", Some("Ctrl+0"), style, true) {
+        if self.render_menu_item(
+            ui,
+            "📐",
+            get_text("fit_to_window", language),
+            Some("Ctrl+0"),
+            style,
+            true,
+        ) {
             self.handle_fit_to_window(_ctx);
             clicked = true;
         }
 
-        if self.render_menu_item(ui, "🔢", "原始尺寸", Some("Ctrl+1"), style, true) {
+        if self.render_menu_item(
+            ui,
+            "🔢",
+            get_text("original_size", language),
+            Some("Ctrl+1"),
+            style,
+            true,
+        ) {
             self.handle_reset_zoom();
             clicked = true;
         }
@@ -521,10 +616,18 @@ impl EguiApp {
         ui: &mut egui::Ui,
         _ctx: &Context,
         style: &MenuStyle,
+        language: Language,
     ) -> bool {
         let mut clicked = false;
 
-        if self.render_menu_item(ui, "⌨", "快捷键", Some("?"), style, true) {
+        if self.render_menu_item(
+            ui,
+            "⌨",
+            get_text("shortcuts_title", language),
+            Some("?"),
+            style,
+            true,
+        ) {
             self.shortcuts_help_panel.toggle();
             clicked = true;
         }
@@ -534,11 +637,7 @@ impl EguiApp {
         if self.render_menu_item(
             ui,
             "ℹ",
-            if is_chinese_supported() {
-                "关于 OAS Image Viewer"
-            } else {
-                "About"
-            },
+            get_text("about_app", language),
             None,
             style,
             true,

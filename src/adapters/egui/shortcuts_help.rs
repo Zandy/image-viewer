@@ -3,6 +3,8 @@
 //! 显示应用程序支持的所有键盘快捷键列表。
 //! 按 ? 键打开/关闭帮助面板。
 
+use crate::adapters::egui::i18n::get_text;
+use crate::core::domain::Language;
 use egui::{Color32, Context, FontId, RichText, Vec2, Window};
 
 /// 快捷键帮助面板状态
@@ -38,7 +40,7 @@ impl ShortcutsHelpPanel {
     }
 
     /// 渲染帮助面板
-    pub fn ui(&mut self, ctx: &Context) {
+    pub fn ui(&mut self, ctx: &Context, language: Language) {
         if !self.visible {
             return;
         }
@@ -59,8 +61,12 @@ impl ShortcutsHelpPanel {
             Color32::from_rgba_premultiplied(0, 0, 0, 120),
         );
 
+        let title = format!("⌨️ {}", get_text("shortcuts_title", language));
+        let heading = get_text("shortcuts_keyboard", language);
+        let close_btn = format!("{} (Esc)", get_text("close", language));
+
         // 帮助面板窗口 - 响应式设计
-        Window::new("⌨️ 快捷键帮助")
+        Window::new(title)
             .collapsible(false)
             .resizable(false)
             .movable(true)
@@ -74,7 +80,7 @@ impl ShortcutsHelpPanel {
             )
             .show(ctx, |ui| {
                 ui.vertical_centered(|ui| {
-                    ui.heading("键盘快捷键");
+                    ui.heading(heading);
                     ui.add_space(12.0);
                 });
 
@@ -89,10 +95,10 @@ impl ShortcutsHelpPanel {
                             // 文件操作
                             render_shortcut_category(
                                 ui,
-                                "📁 文件",
+                                &format!("📁 {}", get_text("file_ops", language)),
                                 &[
-                                    ("Ctrl + O", "打开图像/文件夹"),
-                                    ("Esc", "退出全屏 / 关闭面板"),
+                                    ("Ctrl + O", get_text("shortcut_open", language)),
+                                    ("Esc", get_text("shortcut_exit_fullscreen", language)),
                                 ],
                             );
 
@@ -101,10 +107,10 @@ impl ShortcutsHelpPanel {
                             // 导航操作
                             render_shortcut_category(
                                 ui,
-                                "🧭 导航",
+                                &format!("🧭 {}", get_text("navigation", language)),
                                 &[
-                                    ("← / →", "切换到上/下一张图片"),
-                                    ("G", "切换画廊/查看器视图"),
+                                    ("← / →", get_text("shortcut_prev_next", language)),
+                                    ("G", get_text("shortcut_toggle_view", language)),
                                 ],
                             );
 
@@ -113,15 +119,15 @@ impl ShortcutsHelpPanel {
                             // 视图操作
                             render_shortcut_category(
                                 ui,
-                                "👁 视图",
+                                &format!("👁 {}", get_text("view", language)),
                                 &[
-                                    ("F11", "全屏切换"),
-                                    ("Ctrl + +", "放大"),
-                                    ("Ctrl + -", "缩小"),
-                                    ("Ctrl + 0", "适应窗口"),
-                                    ("Ctrl + 1", "1:1 原始尺寸"),
-                                    ("F", "显示/隐藏信息面板"),
-                                    ("双击", "全屏切换"),
+                                    ("F11", get_text("shortcut_fullscreen", language)),
+                                    ("Ctrl + +", get_text("shortcut_zoom_in", language)),
+                                    ("Ctrl + -", get_text("shortcut_zoom_out", language)),
+                                    ("Ctrl + 0", get_text("shortcut_fit_window", language)),
+                                    ("Ctrl + 1", get_text("shortcut_original", language)),
+                                    ("F", get_text("shortcut_info_panel", language)),
+                                    (get_text("shortcut_dbl_click", language), get_text("shortcut_fullscreen", language)),
                                 ],
                             );
 
@@ -130,8 +136,8 @@ impl ShortcutsHelpPanel {
                             // 其他操作
                             render_shortcut_category(
                                 ui,
-                                "🔧 其他",
-                                &[("?", "显示/隐藏此帮助面板")],
+                                &format!("🔧 {}", get_text("other", language)),
+                                &[("?", get_text("shortcut_help", language))],
                             );
                         });
 
@@ -139,7 +145,7 @@ impl ShortcutsHelpPanel {
 
                         // 关闭按钮
                         ui.vertical_centered(|ui| {
-                            if ui.button("关闭 (Esc)").clicked() {
+                            if ui.button(close_btn).clicked() {
                                 self.hide();
                             }
                         });

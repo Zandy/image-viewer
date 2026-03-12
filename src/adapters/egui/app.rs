@@ -11,7 +11,8 @@ use eframe::Frame;
 use egui::Context;
 use std::path::PathBuf;
 
-use crate::core::domain::{NavigationDirection, ViewMode};
+use crate::adapters::egui::i18n::get_text;
+use crate::core::domain::{Language, NavigationDirection, ViewMode};
 use crate::core::ports::{ClipboardPort, UiPort};
 use crate::core::use_cases::{AppState, GalleryState, ViewState};
 
@@ -252,21 +253,28 @@ impl eframe::App for EguiApp {
             style.spacing.button_padding = egui::vec2(12.0, 8.0);
         });
 
+        // 获取当前语言
+        let language = self
+            .service
+            .get_state()
+            .map(|s| s.config.language)
+            .unwrap_or_default();
+
         // 阶段1: 处理输入
-        self.process_input(ctx);
+        self.process_input(ctx, language);
 
         // 阶段2: 渲染内容
-        let central_response = self.render_content(ctx, _frame);
+        let central_response = self.render_content(ctx, _frame, language);
 
         // 阶段3: 处理交互
         self.handle_interactions(ctx);
 
         // 阶段4: 渲染其他UI组件
-        self.render_info_panel(ctx);
-        self.render_context_menu(ctx, &central_response.response);
-        self.render_drag_overlay(ctx);
-        self.render_about_window(ctx);
-        self.render_shortcuts_help(ctx);
+        self.render_info_panel(ctx, language);
+        self.render_context_menu(ctx, &central_response.response, language);
+        self.render_drag_overlay(ctx, language);
+        self.render_about_window(ctx, language);
+        self.render_shortcuts_help(ctx, language);
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
@@ -288,17 +296,49 @@ impl eframe::App for EguiApp {
 
 impl EguiApp {
     /// 阶段1: 处理输入 - 处理所有输入相关逻辑
-    fn process_input(&mut self, ctx: &Context) {
+    fn process_input(&mut self, ctx: &Context, language: Language) {
         self.save_window_position(ctx);
         self.gallery_widget.init(ctx);
         self.process_pending_files(ctx);
         self.handle_shortcuts(ctx);
         self.handle_drops(ctx);
+        self.handle_gallery_scroll(ctx, language);
+    }
+
+    /// 处理画廊滚轮调整缩略图大小
+    fn handle_gallery_scroll(&mut self, ctx: &Context, language: Language) {
+        let Ok(state) = self.service.get_state() else {
+            return;
+        };
+
+        // 只在画廊模式下处理
+        if state.view.view_mode != ViewMode::Gallery {
+            return;
+        }
+
+        let current_size = state.config.gallery.thumbnail_size;
+        if let Some(new_size) = self
+            .gallery_widget
+            .handle_scroll(ctx, current_size, language)
+        {
+            // 更新配置中的缩略图大小
+            if let Err(e) = self.service.update_state(|s| {
+                s.config.gallery.thumbnail_size = new_size;
+            }) {
+                tracing::error!(error = %e, "更新缩略图大小失败");
+            }
+            // 请求保存配置
+            if let Ok(state) = self.service.get_state() {
+                if let Err(e) = self.service.config_use_case.request_save(&state.config) {
+                    tracing::error!(error = %e, "请求保存配置失败");
+                }
+            }
+        }
     }
 
     /// 阶段2: 渲染内容 - 渲染中央面板（图库或查看器）
-    fn render_content(&mut self, ctx: &Context, _frame: &mut Frame) -> egui::InnerResponse<()> {
-        self.render_menu_bar(ctx, _frame);
+    fn render_content(&mut self, ctx: &Context, _frame: &mut Frame, language: Language) -> egui::InnerResponse<()> {
+        self.render_menu_bar(ctx, _frame, language);
 
         let texture_ref = self.current_texture.as_ref();
 
@@ -307,7 +347,7 @@ impl EguiApp {
 
             match state.view.view_mode {
                 ViewMode::Gallery => {
-                    if let Some(index) = self.gallery_widget.ui(ui, &state.gallery) {
+                    if let Some(index) = self.gallery_widget.ui(ui, &state.gallery, ctx, language) {
                         if let Some(image) = state.gallery.gallery.get_image(index) {
                             self.pending_clicked_image = Some(image.path().to_path_buf());
                         }
@@ -366,7 +406,12 @@ impl EguiApp {
     }
 
     /// 渲染右键菜单
-    fn render_context_menu(&mut self, _ctx: &Context, response: &egui::Response) {
+    fn render_context_menu(
+        &mut self,
+        _ctx: &Context,
+        response: &egui::Response,
+        language: Language,
+    ) {
         let Ok(state) = self.service.get_state() else {
             return;
         };
@@ -382,55 +427,62 @@ impl EguiApp {
 
         response.context_menu(|ui: &mut egui::Ui| {
             ui.set_min_width(150.0);
-            self.render_copy_image_button(ui, &path);
-            self.render_copy_path_button(ui, &path);
+            self.render_copy_image_button(ui, &path, language);
+            self.render_copy_path_button(ui, &path, language);
             ui.separator();
-            self.render_show_in_folder_button(ui, &path);
+            self.render_show_in_folder_button(ui, &path, language);
             self.render_context_result(ui);
         });
     }
 
-    fn render_copy_image_button(&mut self, ui: &mut egui::Ui, path: &std::path::Path) {
-        let has_image = true;
-        let clipboard_available = self.clipboard_manager.is_available();
-
-        ui.add_enabled_ui(has_image && clipboard_available, |ui| {
-            if ui.button("📋 复制图片").clicked() {
-                let copy_result = self.copy_image_to_clipboard(path);
-                self.handle_copy_result(copy_result, "图片已复制");
-                ui.close();
-            }
-        });
-    }
-
-    fn copy_image_to_clipboard(
-        &self,
+    fn render_copy_image_button(
+        &mut self,
+        ui: &mut egui::Ui,
         path: &std::path::Path,
-    ) -> Result<(), crate::core::CoreError> {
-        if let Some((width, height, ref data)) = self.current_texture_data {
-            self.clipboard_manager.copy_image(width, height, data)
-        } else {
-            self.clipboard_manager
-                .copy_image_from_file(path)
-                .map_err(|e| crate::core::CoreError::technical("STORAGE_ERROR", e.to_string()))
-        }
-    }
-
-    fn render_copy_path_button(&mut self, ui: &mut egui::Ui, path: &std::path::Path) {
+        language: Language,
+    ) {
         let has_image = true;
         let clipboard_available = self.clipboard_manager.is_available();
+        let label = format!("📋 {}", get_text("copy_image", language));
 
         ui.add_enabled_ui(has_image && clipboard_available, |ui| {
-            if ui.button("📂 复制文件路径").clicked() {
-                let result = ClipboardPort::copy_path(&self.clipboard_manager, path);
-                self.handle_copy_result(result, "路径已复制");
+            if ui.button(label).clicked() {
+                let copy_result = self.copy_image_to_clipboard(path);
+                let success_msg = get_text("copy_image", language).to_string();
+                self.handle_copy_result(copy_result, &success_msg);
                 ui.close();
             }
         });
     }
 
-    fn render_show_in_folder_button(&mut self, ui: &mut egui::Ui, path: &std::path::Path) {
-        if ui.button("📁 在文件夹中显示").clicked() {
+    fn render_copy_path_button(
+        &mut self,
+        ui: &mut egui::Ui,
+        path: &std::path::Path,
+        language: Language,
+    ) {
+        let has_image = true;
+        let clipboard_available = self.clipboard_manager.is_available();
+        let label = format!("📂 {}", get_text("copy_path", language));
+
+        ui.add_enabled_ui(has_image && clipboard_available, |ui| {
+            if ui.button(label).clicked() {
+                let result = ClipboardPort::copy_path(&self.clipboard_manager, path);
+                let success_msg = get_text("copy_path", language).to_string();
+                self.handle_copy_result(result, &success_msg);
+                ui.close();
+            }
+        });
+    }
+
+    fn render_show_in_folder_button(
+        &mut self,
+        ui: &mut egui::Ui,
+        path: &std::path::Path,
+        language: Language,
+    ) {
+        let label = format!("📁 {}", get_text("show_in_folder", language));
+        if ui.button(label).clicked() {
             let _ = ClipboardPort::show_in_folder(&self.clipboard_manager, path);
             ui.close();
         }
@@ -457,6 +509,14 @@ impl EguiApp {
             Ok(_) => self.last_context_menu_result = Some(success_msg.to_string()),
             Err(e) => self.last_context_menu_result = Some(format!("复制失败: {}", e)),
         }
+    }
+
+    fn copy_image_to_clipboard(
+        &self,
+        path: &std::path::Path,
+    ) -> Result<(), crate::core::CoreError> {
+        self.clipboard_manager.copy_image_from_file(path)
+            .map_err(|e| crate::core::CoreError::technical("CLIPBOARD_ERROR", e.to_string()))
     }
 }
 

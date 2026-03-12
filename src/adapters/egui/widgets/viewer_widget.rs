@@ -362,7 +362,7 @@ impl ViewerWidget {
     fn render_dimensions_indicator(&self, ui: &mut Ui, rect: Rect, state: &ViewState) {
         let (display_text, full_filename) = if let Some(ref image) = state.current_image {
             let filename = image.file_name().unwrap_or("Unknown");
-            let truncated = Self::truncate_filename(&filename, 20);
+            let truncated = Self::truncate_filename(filename, 20);
             let dimensions = format!("{}×{}", image.metadata().width, image.metadata().height);
             
             // 计算百万像素 (MP)
@@ -407,7 +407,7 @@ impl ViewerWidget {
         };
 
         // 判断是否截断（通过比较长度）
-        let is_truncated = full_filename.as_ref().map_or(false, |f| f.len() > 20);
+        let is_truncated = full_filename.as_ref().is_some_and(|f| f.len() > 20);
 
         // 显示悬浮提示（当文件名被截断且鼠标悬停时）
         if is_hovered && is_truncated {

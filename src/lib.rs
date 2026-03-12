@@ -10,6 +10,28 @@ use std::sync::atomic::{AtomicBool, Ordering};
 /// 全局标志：是否支持中文字体显示
 static CHINESE_FONT_SUPPORTED: AtomicBool = AtomicBool::new(false);
 
+/// 中文字体路径列表（按优先级排序）
+/// 
+/// 用于在桌面平台查找并加载中文字体
+pub const CHINESE_FONT_PATHS: &[&str] = &[
+    // ===== macOS =====
+    "/System/Library/Fonts/PingFang.ttc",
+    "/System/Library/Fonts/Supplemental/PingFang.ttc",
+    "/Library/Fonts/PingFang.ttc",
+    "/System/Library/Fonts/STHeiti Light.ttc",
+    "/System/Library/Fonts/STHeiti Medium.ttc",
+    "/System/Library/Fonts/Hiragino Sans GB.ttc",
+    "/Library/Fonts/Hiragino Sans GB.ttc",
+    // ===== Linux =====
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+    "/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc",
+    // ===== Windows =====
+    "C:\\Windows\\Fonts\\msyh.ttc",
+    "C:\\Windows\\Fonts\\simhei.ttf",
+];
+
 /// 设置中文字体支持状态（由 main.rs 在初始化时调用）
 pub fn set_chinese_supported(supported: bool) {
     CHINESE_FONT_SUPPORTED.store(supported, Ordering::Relaxed);

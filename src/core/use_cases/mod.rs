@@ -410,6 +410,7 @@ impl ManageConfigUseCase {
             gallery: config.gallery.validated(),
             viewer: config.viewer.validated(),
             last_opened_directory: config.last_opened_directory.clone(),
+            language: config.language,
         }
     }
 }
@@ -1228,7 +1229,7 @@ mod tests {
         config.viewer.zoom_step = 0.5; // 太小
 
         let validated = use_case.validate_config(&config);
-        assert!(validated.gallery.thumbnail_size >= 80);
+        assert!(validated.gallery.thumbnail_size >= 60);
         assert!(validated.viewer.zoom_step >= 1.01);
     }
 
@@ -1352,7 +1353,7 @@ mod tests {
     fn test_gallery_state_default_values() {
         let state = GalleryState::default();
         assert!(state.gallery.is_empty());
-        assert_eq!(state.layout.thumbnail_size, 120);
+        assert_eq!(state.layout.thumbnail_size, 100);
         assert_eq!(state.items_per_row, 0);
     }
 

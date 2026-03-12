@@ -2010,7 +2010,7 @@ dependencies = [
 
 [[package]]
 name = "oas-image-viewer"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "anyhow",
  "arboard",
@@ -2025,6 +2025,7 @@ dependencies = [
  "rfd",
  "serde",
  "serde_json",
+ "sys-locale",
  "tempfile",
  "toml",
  "tracing",
@@ -3028,6 +3029,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "sys-locale"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8eab9a99a024a169fe8a903cf9d4a3b3601109bcc13bd9e3c6fff259138626c4"
+dependencies = [
+ "libc",
 ]
 
 [[package]]

@@ -1,18 +1,19 @@
 //! 渲染模块
 
 use super::types::EguiApp;
-use crate::core::domain::ViewMode;
+use crate::adapters::egui::i18n::get_text;
+use crate::core::domain::{Language, ViewMode};
 use egui::Context;
 
 impl EguiApp {
     /// 渲染拖拽覆盖层
-    pub(crate) fn render_drag_overlay(&self, ctx: &Context) {
+    pub(crate) fn render_drag_overlay(&self, ctx: &Context, language: Language) {
         if !self.drag_hovering {
             return;
         }
 
         let screen_rect = ctx.viewport_rect();
-        let text = self.get_drag_text(ctx);
+        let text = self.get_drag_text(ctx, language);
 
         egui::Area::new(egui::Id::new("drag_overlay"))
             .fixed_pos(screen_rect.min)
@@ -21,10 +22,10 @@ impl EguiApp {
             });
     }
 
-    fn get_drag_text(&self, ctx: &Context) -> String {
+    fn get_drag_text(&self, ctx: &Context, language: Language) -> String {
         super::utils::get_drag_preview_text(ctx)
             .map(|p| format!("📂 {}", p))
-            .unwrap_or_else(|| "📂 释放以打开图片".to_string())
+            .unwrap_or_else(|| format!("📂 {}", get_text("drag_hint", language)))
     }
 
     fn draw_drag_overlay(&self, ui: &mut egui::Ui, screen_rect: egui::Rect, text: &str) {
@@ -85,12 +86,12 @@ impl EguiApp {
     }
 
     /// 渲染关于窗口
-    pub(crate) fn render_about_window(&mut self, ctx: &Context) {
+    pub(crate) fn render_about_window(&mut self, ctx: &Context, language: Language) {
         if !self.show_about {
             return;
         }
 
-        let mut window = egui::Window::new("关于")
+        let mut window = egui::Window::new(get_text("about_title", language))
             .collapsible(false)
             .resizable(false)
             .fixed_size([300.0, 200.0])
@@ -100,17 +101,20 @@ impl EguiApp {
             window = window.current_pos(pos);
         }
 
+        let version_label = format!("{}: v{}", get_text("version", language), env!("CARGO_PKG_VERSION"));
+        let license_label = format!("{}: MIT License", get_text("license", language));
+
         let response = window.show(ctx, |ui| {
             ui.vertical_centered(|ui| {
                 ui.heading("OAS Image Viewer");
                 ui.add_space(10.0);
-                ui.label(format!("版本: v{}", env!("CARGO_PKG_VERSION")));
+                ui.label(version_label);
                 ui.add_space(5.0);
                 ui.label("© 2026 OAS Image Viewer Contributors");
                 ui.add_space(5.0);
-                ui.label("许可证: MIT License");
+                ui.label(license_label);
                 ui.add_space(20.0);
-                if ui.button("关闭").clicked() {
+                if ui.button(get_text("close", language)).clicked() {
                     self.show_about = false;
                 }
             });
@@ -122,11 +126,11 @@ impl EguiApp {
     }
 
     /// 渲染信息面板
-    pub(crate) fn render_info_panel(&mut self, ctx: &Context) {
+    pub(crate) fn render_info_panel(&mut self, ctx: &Context, language: Language) {
         self.sync_info_panel_visibility();
         self.update_info_panel_content();
 
-        let closed_by_user = self.info_panel.ui(ctx);
+        let closed_by_user = self.info_panel.ui(ctx, language);
 
         if closed_by_user {
             if let Err(e) = self.service.update_state(|state| {
@@ -177,7 +181,7 @@ impl EguiApp {
     }
 
     /// 渲染快捷键帮助
-    pub(crate) fn render_shortcuts_help(&mut self, ctx: &Context) {
-        self.shortcuts_help_panel.ui(ctx);
+    pub(crate) fn render_shortcuts_help(&mut self, ctx: &Context, language: Language) {
+        self.shortcuts_help_panel.ui(ctx, language);
     }
 }

@@ -237,7 +237,7 @@ impl Default for Color {
 impl GalleryLayout {
     /// 验证并修正配置
     pub fn validated(&self) -> Self {
-        const MIN_THUMBNAIL: u32 = 80;
+        const MIN_THUMBNAIL: u32 = 60;
         const MAX_THUMBNAIL: u32 = 200;
 
         Self {
@@ -246,6 +246,18 @@ impl GalleryLayout {
             grid_spacing: self.grid_spacing.max(0.0),
             show_filenames: self.show_filenames,
         }
+    }
+
+    /// 增加缩略图大小（用于 Ctrl+滚轮）
+    pub fn increase_thumbnail_size(&mut self, delta: u32) {
+        const MAX_THUMBNAIL: u32 = 200;
+        self.thumbnail_size = (self.thumbnail_size + delta).min(MAX_THUMBNAIL);
+    }
+
+    /// 减小缩略图大小（用于 Ctrl+滚轮）
+    pub fn decrease_thumbnail_size(&mut self, delta: u32) {
+        const MIN_THUMBNAIL: u32 = 60;
+        self.thumbnail_size = self.thumbnail_size.saturating_sub(delta).max(MIN_THUMBNAIL);
     }
 
     /// 基于可用宽度计算每行项目数
@@ -261,8 +273,8 @@ impl GalleryLayout {
 impl Default for GalleryLayout {
     fn default() -> Self {
         Self {
-            thumbnail_size: 120,
-            items_per_row: 0, // 自动计算
+            thumbnail_size: 100, // 默认 100，范围 60-200
+            items_per_row: 0,    // 自动计算
             grid_spacing: 12.0,
             show_filenames: true,
         }
@@ -451,7 +463,7 @@ mod tests {
             show_filenames: true,
         };
         let validated = layout.validated();
-        assert_eq!(validated.thumbnail_size, 80); // 被限制到最小值
+        assert_eq!(validated.thumbnail_size, 60); // 被限制到最小值
         assert_eq!(validated.items_per_row, 1); // 被限制到最小值
         assert_eq!(validated.grid_spacing, 0.0); // 负数被修正
     }
@@ -595,10 +607,25 @@ mod tests {
 /// 应用配置数据结构
 ///
 /// 这是应用级别的配置，聚合了窗口、画廊、查看器等配置
-#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AppConfig {
     pub window: WindowState,
     pub gallery: GalleryLayout,
     pub viewer: ViewerSettings,
     pub last_opened_directory: Option<PathBuf>,
+    /// 界面语言设置
+    #[serde(default)]
+    pub language: crate::core::domain::Language,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            window: WindowState::default(),
+            gallery: GalleryLayout::default(),
+            viewer: ViewerSettings::default(),
+            last_opened_directory: None,
+            language: crate::core::domain::Language::detect_system(),
+        }
+    }
 }

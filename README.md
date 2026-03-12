@@ -16,7 +16,7 @@ A modern, high-performance image viewer built with Rust and egui.
 - 🎨 **Modern UI**: Clean interface powered by egui
 - 🔧 **Configurable**: Customize via configuration file
 - 🖥️ **Cross-platform**: Windows, macOS, Linux support
-- 🧪 **High Test Coverage**: 380+ unit tests ensuring quality
+- 🧪 **High Test Coverage**: 265+ unit tests ensuring quality
 
 ## Architecture
 
@@ -233,9 +233,18 @@ oas-image-viewer/
 ├── src/
 │   ├── main.rs         # Entry point
 │   ├── lib.rs          # Library root
-│   ├── core/           # Core library (domain + logic)
-│   ├── adapters/       # Adapters (egui UI, infrastructure)
-│   └── infrastructure/ # Infrastructure implementations
+│   ├── adapters/       # UI Adapters (egui)
+│   │   └── egui/
+│   │       ├── app.rs       # EguiApp main application
+│   │       ├── info_panel.rs
+│   │       ├── shortcuts_help.rs
+│   │       └── widgets/     # UI components
+│   ├── core/           # Core business layer
+│   │   ├── domain/     # Entities, value objects
+│   │   ├── ports/      # Interface definitions
+│   │   └── use_cases/  # Use case implementations
+│   └── infrastructure/ # Infrastructure layer
+│       └── mod.rs
 ├── tests/              # Integration tests
 ├── docs/               # Documentation
 ├── assets/             # Icons, resources

@@ -2,6 +2,7 @@
 
 pub mod clipboard;
 pub mod egui;
+pub mod system_integration;
 
 pub use egui::info_panel;
 pub use egui::shortcuts_help;

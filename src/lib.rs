@@ -63,6 +63,7 @@ pub use infrastructure::{FsImageSource, JsonStorage};
 pub use adapters::clipboard;
 pub use adapters::info_panel;
 pub use adapters::shortcuts_help;
+pub use adapters::system_integration;
 pub use core::domain;
 pub use core::ports;
 pub use core::use_cases;

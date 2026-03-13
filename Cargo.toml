@@ -60,6 +60,7 @@ arboard = "3.6"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winuser", "windef"] }
+winreg = "0.52"
 
 [dev-dependencies]
 # Testing

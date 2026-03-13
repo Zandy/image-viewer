@@ -320,6 +320,7 @@ impl eframe::App for EguiApp {
         self.render_drag_overlay(ctx, language);
         self.render_about_window(ctx, language);
         self.render_shortcuts_help(ctx, language);
+        self.render_integration_result(ctx, language);
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {

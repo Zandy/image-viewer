@@ -461,7 +461,7 @@ impl EguiApp {
         ui.add_space(4.0);
 
         // 中文选项
-        let chinese_label = format!("{} {}", if language == Language::Chinese { "✓" } else { " " }, get_text("language_chinese", language));
+        let chinese_label = get_text("language_chinese", language).to_string();
         if self.render_menu_item(
             ui,
             "🇨🇳",
@@ -487,7 +487,7 @@ impl EguiApp {
         }
 
         // 英文选项
-        let english_label = format!("{} {}", if language == Language::English { "✓" } else { " " }, get_text("language_english", language));
+        let english_label = get_text("language_english", language).to_string();
         if self.render_menu_item(
             ui,
             "🇺🇸",
@@ -522,7 +522,7 @@ impl EguiApp {
         let current_theme = self.service.get_state().map(|s| s.config.theme).unwrap_or_default();
 
         // System 选项
-        let system_label = format!("{} {}", if current_theme == Theme::System { "✓" } else { " " }, get_text("theme_system", language));
+        let system_label = get_text("theme_system", language).to_string();
         if self.render_menu_item(
             ui,
             "🖥",
@@ -546,7 +546,7 @@ impl EguiApp {
         }
 
         // Light 选项
-        let light_label = format!("{} {}", if current_theme == Theme::Light { "✓" } else { " " }, get_text("theme_light", language));
+        let light_label = get_text("theme_light", language).to_string();
         if self.render_menu_item(
             ui,
             "☀",
@@ -570,7 +570,7 @@ impl EguiApp {
         }
 
         // Dark 选项
-        let dark_label = format!("{} {}", if current_theme == Theme::Dark { "✓" } else { " " }, get_text("theme_dark", language));
+        let dark_label = get_text("theme_dark", language).to_string();
         if self.render_menu_item(
             ui,
             "🌙",
@@ -594,7 +594,7 @@ impl EguiApp {
         }
 
         // OLED 选项
-        let oled_label = format!("{} {}", if current_theme == Theme::OLED { "✓" } else { " " }, get_text("theme_oled", language));
+        let oled_label = get_text("theme_oled", language).to_string();
         if self.render_menu_item(
             ui,
             "⬛",
@@ -734,6 +734,93 @@ impl EguiApp {
             true,
         ) {
             self.shortcuts_help_panel.toggle();
+            clicked = true;
+        }
+
+        self.render_menu_separator(ui, style);
+
+        // 系统集成子菜单
+        ui.label(RichText::new(get_text("system_integration", language)).size(11.0).color(style.shortcut_color));
+        ui.add_space(4.0);
+
+        // 获取当前集成状态
+        let integration_status = crate::adapters::system_integration::get_integration_status();
+
+        // Windows: 添加到右键菜单
+        #[cfg(target_os = "windows")]
+        {
+            let is_registered = integration_status.context_menu_registered;
+            let context_menu_label = if is_registered {
+                format!("✓ {}", get_text("add_context_menu", language))
+            } else {
+                get_text("add_context_menu", language).to_string()
+            };
+            
+            if self.render_menu_item(
+                ui,
+                "📝",
+                &context_menu_label,
+                None,
+                style,
+                !is_registered,
+            ) {
+                match crate::adapters::system_integration::register_context_menu() {
+                    Ok(_) => {
+                        self.last_context_menu_result = Some(get_text("context_menu_added", language).to_string());
+                    }
+                    Err(e) => {
+                        self.last_context_menu_result = Some(format!("{}: {}", get_text("operation_failed", language), e));
+                    }
+                }
+                clicked = true;
+            }
+
+            // 从右键菜单移除
+            let remove_label = get_text("remove_context_menu", language);
+            if self.render_menu_item(
+                ui,
+                "🗑",
+                remove_label,
+                None,
+                style,
+                is_registered,
+            ) {
+                match crate::adapters::system_integration::unregister_context_menu() {
+                    Ok(_) => {
+                        self.last_context_menu_result = Some(get_text("context_menu_removed", language).to_string());
+                    }
+                    Err(e) => {
+                        self.last_context_menu_result = Some(format!("{}: {}", get_text("operation_failed", language), e));
+                    }
+                }
+                clicked = true;
+            }
+        }
+
+        // 设为默认图片查看器（所有平台）
+        let is_default = integration_status.default_app_registered;
+        let default_app_label = if is_default {
+            format!("✓ {}", get_text("set_default_app", language))
+        } else {
+            get_text("set_default_app", language).to_string()
+        };
+        
+        if self.render_menu_item(
+            ui,
+            "⭐",
+            &default_app_label,
+            None,
+            style,
+            !is_default,
+        ) {
+            match crate::adapters::system_integration::set_as_default_app() {
+                Ok(_) => {
+                    self.last_context_menu_result = Some(get_text("default_app_set", language).to_string());
+                }
+                Err(e) => {
+                    self.last_context_menu_result = Some(format!("{}: {}", get_text("operation_failed", language), e));
+                }
+            }
             clicked = true;
         }
 

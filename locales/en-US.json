@@ -101,5 +101,18 @@
   "previous": "Previous",
   "next": "Next",
   "about_app": "About OAS Image Viewer",
-  "thumbnail_hint": "Thumbnail: {}px"
+  "thumbnail_hint": "Thumbnail: {}px",
+  "system_integration": "System Integration",
+  "integration_status": "Integration Status",
+  "add_context_menu": "Add to Context Menu",
+  "remove_context_menu": "Remove from Context Menu",
+  "set_default_app": "Set as Default Image Viewer",
+  "context_menu_added": "Context menu added",
+  "context_menu_removed": "Context menu removed",
+  "default_app_set": "Set as default image viewer",
+  "operation_success": "Operation successful",
+  "operation_failed": "Operation failed",
+  "windows_only": "This feature is only available on Windows",
+  "registered": "Registered",
+  "not_registered": "Not registered"
 }

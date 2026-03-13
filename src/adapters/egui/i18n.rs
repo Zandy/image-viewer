@@ -15,7 +15,7 @@ static ENGLISH_PACK: OnceLock<HashMap<&'static str, &'static str>> = OnceLock::n
 /// 从 JSON 内容加载为静态键值对
 fn load_static_pack(json_content: &str) -> HashMap<&'static str, &'static str> {
     let value: serde_json::Value = serde_json::from_str(json_content)
-        .expect("Failed to parse JSON");
+        .expect("解析 JSON 失败");
     let mut translations = HashMap::new();
 
     if let serde_json::Value::Object(map) = value {

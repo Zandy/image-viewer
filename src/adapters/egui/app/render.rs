@@ -184,4 +184,65 @@ impl EguiApp {
     pub(crate) fn render_shortcuts_help(&mut self, ctx: &Context, language: Language) {
         self.shortcuts_help_panel.ui(ctx, language);
     }
+
+    /// 渲染系统集成操作结果通知
+    pub(crate) fn render_integration_result(&mut self, ctx: &Context, _language: Language) {
+        let Some(ref result) = self.last_context_menu_result else {
+            return;
+        };
+
+        // 使用临时 ID 来显示 toast 通知
+        let id = egui::Id::new("integration_result_toast");
+        let current_time = ctx.input(|i| i.time);
+        
+        // 获取或初始化显示开始时间
+        let start_time: f64 = ctx.data_mut(|d| {
+            d.get_temp(id).unwrap_or(current_time)
+        });
+        
+        // 如果超过 3 秒，清除结果
+        if current_time - start_time > 3.0 {
+            self.last_context_menu_result = None;
+            ctx.data_mut(|d| d.remove_temp::<f64>(id));
+            return;
+        }
+
+        // 显示 toast 通知
+        let screen_rect = ctx.viewport_rect();
+        let toast_width = 280.0;
+        let toast_height = 50.0;
+        let pos = egui::pos2(
+            screen_rect.center().x - toast_width / 2.0,
+            screen_rect.max.y - toast_height - 20.0,
+        );
+
+        egui::Area::new(id)
+            .fixed_pos(pos)
+            .interactable(false)
+            .show(ctx, |ui| {
+                let is_error = result.contains("失败") || result.contains("failed") || result.contains("Error");
+                
+                let (bg_color, text_color) = if is_error {
+                    (egui::Color32::from_rgb(200, 50, 50), egui::Color32::WHITE)
+                } else {
+                    (egui::Color32::from_rgb(50, 150, 80), egui::Color32::WHITE)
+                };
+
+                let rect = egui::Rect::from_min_size(pos, egui::vec2(toast_width, toast_height));
+                
+                ui.painter().rect_filled(
+                    rect,
+                    8.0,
+                    bg_color,
+                );
+
+                ui.painter().text(
+                    rect.center(),
+                    egui::Align2::CENTER_CENTER,
+                    result,
+                    egui::FontId::proportional(14.0),
+                    text_color,
+                );
+            });
+    }
 }

@@ -47,38 +47,69 @@ impl CoreError {
         matches!(self, Self::Gallery(_) | Self::View(_) | Self::Config(_))
     }
 
-    /// 获取用户友好的错误消息（中文）
-    pub fn user_message(&self) -> String {
+    /// 获取翻译键名（用于 i18n）
+    /// 
+    /// 返回的是翻译键名，而非实际消息文本。
+    /// UI 层应使用 get_text(key, language) 获取本地化文本。
+    pub fn translation_key(&self) -> &'static str {
         match self {
             CoreError::Gallery(e) => match e {
-                GalleryError::EmptyGallery => "图库为空".to_string(),
+                GalleryError::EmptyGallery => "error_empty_gallery",
                 GalleryError::BoundaryReached { boundary, .. } => match boundary {
-                    Boundary::FirstImage => "已经是第一张图片了".to_string(),
-                    Boundary::LastImage => "已经是最后一张图片了".to_string(),
+                    Boundary::FirstImage => "error_first_image",
+                    Boundary::LastImage => "error_last_image",
                 },
                 GalleryError::ImageNotAvailable { reason, .. } => match reason {
-                    UnavailableReason::FileNotFound => "图片文件已移动或删除".to_string(),
-                    UnavailableReason::PermissionDenied => "无法访问该图片（权限不足）".to_string(),
-                    UnavailableReason::Corrupted => "图片文件已损坏".to_string(),
-                    UnavailableReason::UnsupportedFormat { detected } => {
-                        format!("不支持的图片格式: {}", detected)
-                    }
-                    UnavailableReason::FileLocked => "图片文件被其他程序占用".to_string(),
+                    UnavailableReason::FileNotFound => "error_file_not_found",
+                    UnavailableReason::PermissionDenied => "error_permission_denied",
+                    UnavailableReason::Corrupted => "error_corrupted",
+                    UnavailableReason::UnsupportedFormat { .. } => "error_unsupported_format",
+                    UnavailableReason::FileLocked => "error_file_locked",
                 },
-                GalleryError::InvalidIndex { .. } => "无效的图片位置".to_string(),
+                GalleryError::InvalidIndex { .. } => "error_invalid_index",
             },
             CoreError::View(e) => match e {
-                ViewError::NoCurrentImage => "没有可显示的图片".to_string(),
-                ViewError::ZoomOutOfRange { .. } => "缩放级别超出范围".to_string(),
-                ViewError::ImageNotLoaded { .. } => "图片正在加载中".to_string(),
+                ViewError::NoCurrentImage => "error_no_current_image",
+                ViewError::ZoomOutOfRange { .. } => "error_zoom_out_of_range",
+                ViewError::ImageNotLoaded { .. } => "error_image_not_loaded",
             },
             CoreError::Config(e) => match e {
-                ConfigError::ReadFailed { .. } => "无法读取配置".to_string(),
-                ConfigError::WriteFailed { .. } => "无法保存配置".to_string(),
-                ConfigError::InvalidValue { key, .. } => format!("配置项 '{}' 无效", key),
+                ConfigError::ReadFailed { .. } => "error_read_config",
+                ConfigError::WriteFailed { .. } => "error_write_config",
+                ConfigError::InvalidValue { .. } => "error_config_invalid",
             },
-            CoreError::Technical { message, .. } => format!("发生错误: {}", message),
+            CoreError::Technical { .. } => "error_technical",
         }
+    }
+
+    /// 获取格式化参数（用于带参数的错误消息）
+    pub fn format_args(&self) -> Vec<String> {
+        match self {
+            CoreError::Gallery(e) => match e {
+                #[allow(clippy::collapsible_match)]
+                GalleryError::ImageNotAvailable {
+                    reason: UnavailableReason::UnsupportedFormat { detected },
+                    ..
+                } => {
+                    vec![detected.clone()]
+                }
+                GalleryError::InvalidIndex { index, total_count } => {
+                    vec![index.to_string(), total_count.to_string()]
+                }
+                _ => vec![],
+            },
+            #[allow(clippy::collapsible_match)]
+            CoreError::Config(ConfigError::InvalidValue { key, .. }) => vec![key.clone()],
+            CoreError::Technical { message, .. } => vec![message.clone()],
+            _ => vec![],
+        }
+    }
+
+    /// 获取用户友好的错误消息（已弃用，请使用 translation_key + i18n）
+    #[deprecated(since = "0.3.3", note = "Use translation_key() with i18n module instead")]
+    pub fn user_message(&self) -> String {
+        // 默认返回英文消息作为后备
+        self.translation_key().to_string()
     }
 }
 
@@ -103,10 +134,10 @@ impl From<ConfigError> for CoreError {
 impl std::fmt::Display for CoreError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CoreError::Gallery(e) => write!(f, "[图库错误] {}", e),
-            CoreError::View(e) => write!(f, "[视图错误] {}", e),
-            CoreError::Config(e) => write!(f, "[配置错误] {}", e),
-            CoreError::Technical { code, message } => write!(f, "[技术错误 {}] {}", code, message),
+            CoreError::Gallery(e) => write!(f, "[Gallery] {}", e),
+            CoreError::View(e) => write!(f, "[View] {}", e),
+            CoreError::Config(e) => write!(f, "[Config] {}", e),
+            CoreError::Technical { code, message } => write!(f, "[Error {}] {}", code, message),
         }
     }
 }
@@ -123,7 +154,7 @@ mod tests {
         let err: CoreError = GalleryError::EmptyGallery.into();
         assert!(matches!(err, CoreError::Gallery(_)));
         assert!(err.is_business_error());
-        assert_eq!(err.user_message(), "图库为空");
+        assert_eq!(err.translation_key(), "error_empty_gallery");
     }
 
     #[test]
@@ -134,7 +165,7 @@ mod tests {
             total_count: 10,
         }
         .into();
-        assert_eq!(err.user_message(), "已经是第一张图片了");
+        assert_eq!(err.translation_key(), "error_first_image");
     }
 
     #[test]
@@ -145,7 +176,7 @@ mod tests {
             total_count: 10,
         }
         .into();
-        assert_eq!(err.user_message(), "已经是最后一张图片了");
+        assert_eq!(err.translation_key(), "error_last_image");
     }
 
     #[test]
@@ -155,7 +186,7 @@ mod tests {
             reason: UnavailableReason::FileNotFound,
         }
         .into();
-        assert_eq!(err.user_message(), "图片文件已移动或删除");
+        assert_eq!(err.translation_key(), "error_file_not_found");
     }
 
     #[test]
@@ -167,21 +198,27 @@ mod tests {
             },
         }
         .into();
-        assert!(err.user_message().contains("XYZ"));
+        assert_eq!(err.translation_key(), "error_unsupported_format");
+        let args = err.format_args();
+        assert_eq!(args.len(), 1);
+        assert_eq!(args[0], "XYZ");
     }
 
     #[test]
     fn test_core_error_technical() {
-        let err = CoreError::technical("IO_ERROR", "磁盘读取失败");
+        let err = CoreError::technical("IO_ERROR", "disk read failed");
         assert!(!err.is_business_error());
-        assert!(err.user_message().contains("磁盘读取失败"));
+        assert_eq!(err.translation_key(), "error_technical");
+        let args = err.format_args();
+        assert_eq!(args.len(), 1);
+        assert_eq!(args[0], "disk read failed");
     }
 
     #[test]
     fn test_core_error_display() {
         let err: CoreError = GalleryError::EmptyGallery.into();
         let display = format!("{}", err);
-        assert!(display.contains("图库错误"));
+        assert!(display.contains("[Gallery]"));
     }
 
     #[test]
@@ -209,7 +246,7 @@ mod tests {
     #[test]
     fn test_view_error_no_current_image() {
         let err: CoreError = ViewError::NoCurrentImage.into();
-        assert_eq!(err.user_message(), "没有可显示的图片");
+        assert_eq!(err.translation_key(), "error_no_current_image");
     }
 
     #[test]
@@ -217,10 +254,13 @@ mod tests {
         let err: CoreError = ConfigError::InvalidValue {
             key: "thumbnail_size".to_string(),
             value: "abc".to_string(),
-            reason: "不是数字".to_string(),
+            reason: "not a number".to_string(),
         }
         .into();
-        assert!(err.user_message().contains("thumbnail_size"));
+        assert_eq!(err.translation_key(), "error_config_invalid");
+        let args = err.format_args();
+        assert_eq!(args.len(), 1);
+        assert_eq!(args[0], "thumbnail_size");
     }
 
     #[test]
@@ -244,12 +284,62 @@ mod tests {
 
     #[test]
     fn test_version_format() {
-        // 验证版本号格式是 x.y.z
+        // Verify version format is x.y.z
         let parts: Vec<&str> = VERSION.split('.').collect();
         assert_eq!(parts.len(), 3);
 
         for part in parts {
             assert!(part.parse::<u32>().is_ok());
         }
+    }
+
+    #[test]
+    fn test_format_args_empty() {
+        let err: CoreError = GalleryError::EmptyGallery.into();
+        let args = err.format_args();
+        assert!(args.is_empty());
+    }
+
+    #[test]
+    fn test_translation_key_all_variants() {
+        // Gallery errors
+        assert_eq!(
+            CoreError::from(GalleryError::EmptyGallery).translation_key(),
+            "error_empty_gallery"
+        );
+        assert_eq!(
+            CoreError::from(GalleryError::BoundaryReached {
+                boundary: Boundary::FirstImage,
+                current_index: 0,
+                total_count: 5,
+            })
+            .translation_key(),
+            "error_first_image"
+        );
+        assert_eq!(
+            CoreError::from(GalleryError::BoundaryReached {
+                boundary: Boundary::LastImage,
+                current_index: 4,
+                total_count: 5,
+            })
+            .translation_key(),
+            "error_last_image"
+        );
+        
+        // View errors
+        assert_eq!(
+            CoreError::from(ViewError::NoCurrentImage).translation_key(),
+            "error_no_current_image"
+        );
+        assert_eq!(
+            CoreError::from(ViewError::ZoomOutOfRange { requested: 10.0, min: 0.1, max: 5.0 }).translation_key(),
+            "error_zoom_out_of_range"
+        );
+        
+        // Config errors
+        assert_eq!(
+            CoreError::from(ConfigError::ReadFailed { path: PathBuf::from("test") }).translation_key(),
+            "error_read_config"
+        );
     }
 }

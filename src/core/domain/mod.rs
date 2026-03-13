@@ -11,5 +11,5 @@ pub use image::{is_image_file, Gallery, Image, ImageFormat, ImageMetadata};
 pub use language::Language;
 pub use types::{
     AppConfig, Color, Dimensions, DisplayMode, GalleryLayout, NavigationDirection, Position, Scale,
-    ViewMode, ViewerSettings, WindowState,
+    Theme, ViewMode, ViewerSettings, WindowState,
 };

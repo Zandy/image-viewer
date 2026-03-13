@@ -411,6 +411,7 @@ impl ManageConfigUseCase {
             viewer: config.viewer.validated(),
             last_opened_directory: config.last_opened_directory.clone(),
             language: config.language,
+            theme: config.theme,
         }
     }
 }

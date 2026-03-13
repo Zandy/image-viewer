@@ -23,7 +23,7 @@ impl EguiApp {
     }
 
     fn get_drag_text(&self, ctx: &Context, language: Language) -> String {
-        super::utils::get_drag_preview_text(ctx)
+        super::utils::get_drag_preview_text(ctx, language)
             .map(|p| format!("📂 {}", p))
             .unwrap_or_else(|| format!("📂 {}", get_text("drag_hint", language)))
     }

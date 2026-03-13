@@ -101,7 +101,7 @@
 
 ### 前提条件
 
-- Rust 1.93 或更高版本
+- Rust 1.94 或更高版本
 - Linux 系统依赖：
   ```bash
   # Ubuntu/Debian

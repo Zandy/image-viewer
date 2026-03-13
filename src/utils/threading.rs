@@ -16,7 +16,7 @@ impl ThreadPoolManager {
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(num_threads)
             .build()
-            .expect("创建线程池失败");
+            .expect("Failed to create thread pool");
 
         Self {
             pool: Arc::new(pool),

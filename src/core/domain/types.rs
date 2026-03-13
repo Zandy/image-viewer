@@ -606,6 +606,50 @@ mod tests {
     }
 }
 
+/// 主题设置
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+pub enum Theme {
+    /// 跟随系统
+    #[default]
+    System,
+    /// 浅色模式
+    Light,
+    /// 深色模式
+    Dark,
+    /// OLED 纯黑模式
+    #[allow(clippy::upper_case_acronyms)]
+    OLED,
+}
+
+impl Theme {
+    /// 获取主题显示名称
+    pub fn display_name(&self, lang: crate::core::domain::Language) -> &'static str {
+        match (self, lang) {
+            (Theme::System, crate::core::domain::Language::Chinese) => "跟随系统",
+            (Theme::System, crate::core::domain::Language::English) => "System",
+            (Theme::Light, crate::core::domain::Language::Chinese) => "浅色",
+            (Theme::Light, crate::core::domain::Language::English) => "Light",
+            (Theme::Dark, crate::core::domain::Language::Chinese) => "深色",
+            (Theme::Dark, crate::core::domain::Language::English) => "Dark",
+            (Theme::OLED, crate::core::domain::Language::Chinese) => "OLED 纯黑",
+            (Theme::OLED, crate::core::domain::Language::English) => "OLED Black",
+        }
+    }
+
+    /// 判断是否为暗色主题
+    pub fn is_dark(&self) -> bool {
+        match self {
+            Theme::System => {
+                // 跟随系统默认返回 true（暗色）
+                // 实际判断由调用者使用 dark-light crate 或其他方式
+                true
+            }
+            Theme::Light => false,
+            Theme::Dark | Theme::OLED => true,
+        }
+    }
+}
+
 /// 应用配置数据结构
 ///
 /// 这是应用级别的配置，聚合了窗口、画廊、查看器等配置
@@ -618,6 +662,9 @@ pub struct AppConfig {
     /// 界面语言设置
     #[serde(default)]
     pub language: crate::core::domain::Language,
+    /// 主题设置
+    #[serde(default)]
+    pub theme: Theme,
 }
 
 impl Default for AppConfig {
@@ -628,6 +675,7 @@ impl Default for AppConfig {
             viewer: ViewerSettings::default(),
             last_opened_directory: None,
             language: crate::core::domain::Language::detect_system(),
+            theme: Theme::default(),
         }
     }
 }

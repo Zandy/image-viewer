@@ -1,13 +1,15 @@
 //! 工具函数
 
+use crate::adapters::egui::i18n::get_text;
+use crate::core::domain::Language;
 use egui::Context;
 
 /// 获取拖拽预览文本
-pub fn get_drag_preview_text(ctx: &Context) -> Option<String> {
+pub fn get_drag_preview_text(ctx: &Context, language: Language) -> Option<String> {
     ctx.input(|i| {
         let count = i.raw.hovered_files.len();
         if count > 1 {
-            Some(format!("{} 个文件", count))
+            Some(get_text("files_count", language).replace("{}", &count.to_string()))
         } else if count == 1 {
             i.raw.hovered_files.first().and_then(|f| {
                 f.path

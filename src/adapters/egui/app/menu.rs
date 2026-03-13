@@ -1,6 +1,6 @@
 use super::types::EguiApp;
 use crate::adapters::egui::i18n::get_text;
-use crate::core::domain::{Language, NavigationDirection, ViewMode};
+use crate::core::domain::{Language, NavigationDirection, Theme, ViewMode};
 use egui::{Color32, Context, CornerRadius, RichText, Stroke, Vec2};
 
 struct MenuStyle {
@@ -461,7 +461,7 @@ impl EguiApp {
         ui.add_space(4.0);
 
         // 中文选项
-        let chinese_label = format!("{} 中文", if language == Language::Chinese { "✓" } else { " " });
+        let chinese_label = format!("{} {}", if language == Language::Chinese { "✓" } else { " " }, get_text("language_chinese", language));
         if self.render_menu_item(
             ui,
             "🇨🇳",
@@ -487,7 +487,7 @@ impl EguiApp {
         }
 
         // 英文选项
-        let english_label = format!("{} English", if language == Language::English { "✓" } else { " " });
+        let english_label = format!("{} {}", if language == Language::English { "✓" } else { " " }, get_text("language_english", language));
         if self.render_menu_item(
             ui,
             "🇺🇸",
@@ -502,6 +502,111 @@ impl EguiApp {
                 crate::set_chinese_supported(false);
             }) {
                 tracing::error!(error = %e, "切换语言失败");
+            }
+            // 请求保存配置
+            if let Ok(state) = self.service.get_state() {
+                if let Err(e) = self.service.config_use_case.request_save(&state.config) {
+                    tracing::error!(error = %e, "请求保存配置失败");
+                }
+            }
+            clicked = true;
+        }
+
+        self.render_menu_separator(ui, style);
+
+        // 主题切换子菜单
+        ui.label(RichText::new(get_text("theme", language)).size(11.0).color(style.shortcut_color));
+        ui.add_space(4.0);
+
+        // 获取当前主题设置
+        let current_theme = self.service.get_state().map(|s| s.config.theme).unwrap_or_default();
+
+        // System 选项
+        let system_label = format!("{} {}", if current_theme == Theme::System { "✓" } else { " " }, get_text("theme_system", language));
+        if self.render_menu_item(
+            ui,
+            "🖥",
+            &system_label,
+            None,
+            style,
+            current_theme != Theme::System,
+        ) {
+            if let Err(e) = self.service.update_state(|s| {
+                s.config.theme = Theme::System;
+            }) {
+                tracing::error!(error = %e, "切换主题失败");
+            }
+            // 请求保存配置
+            if let Ok(state) = self.service.get_state() {
+                if let Err(e) = self.service.config_use_case.request_save(&state.config) {
+                    tracing::error!(error = %e, "请求保存配置失败");
+                }
+            }
+            clicked = true;
+        }
+
+        // Light 选项
+        let light_label = format!("{} {}", if current_theme == Theme::Light { "✓" } else { " " }, get_text("theme_light", language));
+        if self.render_menu_item(
+            ui,
+            "☀",
+            &light_label,
+            None,
+            style,
+            current_theme != Theme::Light,
+        ) {
+            if let Err(e) = self.service.update_state(|s| {
+                s.config.theme = Theme::Light;
+            }) {
+                tracing::error!(error = %e, "切换主题失败");
+            }
+            // 请求保存配置
+            if let Ok(state) = self.service.get_state() {
+                if let Err(e) = self.service.config_use_case.request_save(&state.config) {
+                    tracing::error!(error = %e, "请求保存配置失败");
+                }
+            }
+            clicked = true;
+        }
+
+        // Dark 选项
+        let dark_label = format!("{} {}", if current_theme == Theme::Dark { "✓" } else { " " }, get_text("theme_dark", language));
+        if self.render_menu_item(
+            ui,
+            "🌙",
+            &dark_label,
+            None,
+            style,
+            current_theme != Theme::Dark,
+        ) {
+            if let Err(e) = self.service.update_state(|s| {
+                s.config.theme = Theme::Dark;
+            }) {
+                tracing::error!(error = %e, "切换主题失败");
+            }
+            // 请求保存配置
+            if let Ok(state) = self.service.get_state() {
+                if let Err(e) = self.service.config_use_case.request_save(&state.config) {
+                    tracing::error!(error = %e, "请求保存配置失败");
+                }
+            }
+            clicked = true;
+        }
+
+        // OLED 选项
+        let oled_label = format!("{} {}", if current_theme == Theme::OLED { "✓" } else { " " }, get_text("theme_oled", language));
+        if self.render_menu_item(
+            ui,
+            "⬛",
+            &oled_label,
+            None,
+            style,
+            current_theme != Theme::OLED,
+        ) {
+            if let Err(e) = self.service.update_state(|s| {
+                s.config.theme = Theme::OLED;
+            }) {
+                tracing::error!(error = %e, "切换主题失败");
             }
             // 请求保存配置
             if let Ok(state) = self.service.get_state() {

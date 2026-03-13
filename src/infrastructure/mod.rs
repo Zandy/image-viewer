@@ -185,7 +185,7 @@ impl JsonStorage {
         let config_dir = Self::config_dir()?;
 
         // 记录配置目录到日志文件
-        Self::log_debug(&format!("配置目录: {:?}", config_dir));
+        Self::log_debug(&format!("Config directory: {:?}", config_dir));
 
         std::fs::create_dir_all(&config_dir).map_err(|e| {
             CoreError::technical(
@@ -197,7 +197,7 @@ impl JsonStorage {
         let config_path = config_dir.join("config.toml");
 
         // 记录配置文件完整路径到日志文件
-        Self::log_debug(&format!("配置文件路径: {:?}", config_path));
+        Self::log_debug(&format!("Config file path: {:?}", config_path));
 
         Ok(Self {
             config_path,
@@ -316,14 +316,14 @@ impl Default for JsonStorage {
 
 impl Storage for JsonStorage {
     fn load_config(&self) -> Result<AppConfig> {
-        // 记录正在加载的配置文件路径
-        Self::log_debug(&format!("加载配置文件: {:?}", self.config_path));
+        // Record the configuration file path being loaded
+        Self::log_debug(&format!("Loading config file: {:?}", self.config_path));
 
         if self.config_path.exists() {
-            Self::log_debug("配置文件存在，开始读取...");
+            Self::log_debug("Config file exists, starting to read...");
             Self::load_from_file(&self.config_path)
         } else {
-            Self::log_debug("配置文件不存在，使用默认配置");
+            Self::log_debug("Config file does not exist, using default config");
             Ok(AppConfig::default())
         }
     }

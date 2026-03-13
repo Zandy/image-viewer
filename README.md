@@ -74,7 +74,7 @@ Core Library Layer (core/)
 
 ### Prerequisites
 
-- Rust 1.93 or higher
+- Rust 1.94 or higher
 - Linux system dependencies:
   ```bash
   # Ubuntu/Debian

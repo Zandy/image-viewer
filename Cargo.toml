@@ -1,6 +1,6 @@
 [package]
 name = "oas-image-viewer"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 authors = ["OpenAppSys Team <team@openappsys.com>"]
 description = "A modern image viewer built with Rust and egui"
@@ -42,6 +42,9 @@ directories = "6.0"
 
 # System locale detection
 sys-locale = "0.3"
+
+# System theme detection
+dark-light = "1.0"
 
 # File dialogs - use default backend selection
 rfd = { version = "0.17", default-features = false, features = ["xdg-portal"] }

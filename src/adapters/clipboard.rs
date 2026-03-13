@@ -193,7 +193,7 @@ impl ClipboardManager {
                 .map_err(|e| ClipboardError::FailedToCopy(format!("无法打开文件夹: {}", e)))?;
         }
 
-        info!("已在文件夹中显示: {:?}", path);
+        info!("在文件夹中显示: {:?}", path);
         Ok(())
     }
 }

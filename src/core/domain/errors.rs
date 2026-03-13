@@ -96,7 +96,7 @@ impl std::fmt::Display for GalleryError {
                 Boundary::LastImage => write!(f, "已经是最后一张图片"),
             },
             GalleryError::InvalidIndex { index, total_count } => {
-                write!(f, "无效的图片索引: {} (总数: {})", index, total_count)
+                write!(f, "无效的图片索引: {} (总计: {})", index, total_count)
             }
         }
     }
@@ -116,7 +116,7 @@ impl std::fmt::Display for ViewError {
                 write!(f, "缩放级别 {} 超出范围 [{}, {}]", requested, min, max)
             }
             ViewError::ImageNotLoaded { path } => {
-                write!(f, "图片尚未加载: {}", path.display())
+                write!(f, "图片未加载: {}", path.display())
             }
         }
     }
@@ -126,10 +126,10 @@ impl std::fmt::Display for ConfigError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ConfigError::ReadFailed { path } => {
-                write!(f, "无法读取配置文件: {}", path.display())
+                write!(f, "读取配置文件失败: {}", path.display())
             }
             ConfigError::WriteFailed { path } => {
-                write!(f, "无法写入配置文件: {}", path.display())
+                write!(f, "写入配置文件失败: {}", path.display())
             }
             ConfigError::InvalidValue { key, value, reason } => {
                 write!(f, "配置项 '{}' 的值 '{}' 无效: {}", key, value, reason)
@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn test_gallery_error_empty() {
         let err = GalleryError::EmptyGallery;
-        assert!(err.to_string().contains("空"));
+        assert!(err.to_string().contains("empty") || err.to_string().contains("Empty"));
     }
 
     #[test]
@@ -159,7 +159,7 @@ mod tests {
             current_index: 0,
             total_count: 10,
         };
-        assert!(err.to_string().contains("第一张"));
+        assert!(err.to_string().contains("first") || err.to_string().contains("First"));
     }
 
     #[test]
@@ -171,5 +171,24 @@ mod tests {
         };
         assert!(err.to_string().contains("10"));
         assert!(err.to_string().contains("0.1"));
+    }
+
+    #[test]
+    fn test_gallery_error_last_boundary() {
+        let err = GalleryError::BoundaryReached {
+            boundary: Boundary::LastImage,
+            current_index: 9,
+            total_count: 10,
+        };
+        assert!(err.to_string().contains("last") || err.to_string().contains("Last"));
+    }
+
+    #[test]
+    fn test_config_error_display() {
+        let err = ConfigError::ReadFailed {
+            path: std::path::PathBuf::from("/test/config.json"),
+        };
+        let msg = err.to_string();
+        assert!(msg.contains("config") || msg.contains("Config"));
     }
 }

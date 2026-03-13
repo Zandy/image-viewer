@@ -231,7 +231,7 @@ The .desktop file registers the following MIME types:
 
 ### Prerequisites
 
-- Rust 1.93 or higher
+- Rust 1.94 or higher
 - Platform-specific dependencies:
 
 #### Linux Dependencies

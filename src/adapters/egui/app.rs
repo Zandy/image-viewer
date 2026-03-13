@@ -217,6 +217,45 @@ impl EguiApp {
         let fit_to_window = s.config.viewer.fit_to_window;
         self.open_image(ctx, &image_path, fit_to_window);
     }
+
+    /// 应用主题设置
+    fn apply_theme(&self, ctx: &Context) {
+        use crate::core::domain::Theme;
+
+        let theme = self
+            .service
+            .get_state()
+            .map(|s| s.config.theme)
+            .unwrap_or_default();
+
+        ctx.set_visuals(match theme {
+            Theme::System => {
+                // 使用 dark-light crate 检测真正的系统主题
+                let is_dark = match dark_light::detect() {
+                    dark_light::Mode::Dark => true,
+                    dark_light::Mode::Light => false,
+                    dark_light::Mode::Default => true, // 默认使用暗色
+                };
+                if is_dark {
+                    egui::Visuals::dark()
+                } else {
+                    egui::Visuals::light()
+                }
+            }
+            Theme::Light => egui::Visuals::light(),
+            Theme::Dark => egui::Visuals::dark(),
+            Theme::OLED => {
+                // OLED 纯黑主题
+                let mut visuals = egui::Visuals::dark();
+                visuals.panel_fill = egui::Color32::from_rgb(0, 0, 0);
+                visuals.window_fill = egui::Color32::from_rgb(0, 0, 0);
+                visuals.extreme_bg_color = egui::Color32::from_rgb(0, 0, 0);
+                visuals.code_bg_color = egui::Color32::from_rgb(15, 15, 15);
+                visuals.faint_bg_color = egui::Color32::from_rgb(10, 10, 10);
+                visuals
+            }
+        });
+    }
 }
 
 impl UiPort for EguiApp {
@@ -251,6 +290,9 @@ impl UiPort for EguiApp {
 
 impl eframe::App for EguiApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+        // 应用主题设置
+        self.apply_theme(ctx);
+
         ctx.style_mut(|style| {
             style.spacing.item_spacing = egui::vec2(8.0, 8.0);
             style.spacing.button_padding = egui::vec2(12.0, 8.0);
@@ -375,6 +417,7 @@ impl EguiApp {
                         &mut state.view,
                         &state.config.viewer,
                         texture_ref,
+                        language,
                     );
                 }
             }
@@ -465,7 +508,7 @@ impl EguiApp {
             if ui.button(label).clicked() {
                 let copy_result = self.copy_image_to_clipboard(path);
                 let success_msg = get_text("copy_image", language).to_string();
-                self.handle_copy_result(copy_result, &success_msg);
+                self.handle_copy_result(copy_result, &success_msg, language);
                 ui.close();
             }
         });
@@ -485,7 +528,7 @@ impl EguiApp {
             if ui.button(label).clicked() {
                 let result = ClipboardPort::copy_path(&self.clipboard_manager, path);
                 let success_msg = get_text("copy_path", language).to_string();
-                self.handle_copy_result(result, &success_msg);
+                self.handle_copy_result(result, &success_msg, language);
                 ui.close();
             }
         });
@@ -520,10 +563,14 @@ impl EguiApp {
         &mut self,
         result: Result<(), crate::core::CoreError>,
         success_msg: &str,
+        language: Language,
     ) {
         match result {
             Ok(_) => self.last_context_menu_result = Some(success_msg.to_string()),
-            Err(e) => self.last_context_menu_result = Some(format!("复制失败: {}", e)),
+            Err(_) => {
+                let error_msg = get_text("copy_failed", language);
+                self.last_context_menu_result = Some(error_msg.to_string());
+            }
         }
     }
 

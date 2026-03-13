@@ -1,6 +1,8 @@
 //! Viewer Widget - 查看器 UI 组件
 
 use crate::adapters::clipboard::ClipboardManager;
+use crate::adapters::egui::i18n::get_text;
+use crate::core::domain::Language;
 use crate::core::domain::Scale;
 use crate::core::domain::ViewerSettings;
 use crate::core::ports::ClipboardPort;
@@ -23,6 +25,7 @@ impl ViewerWidget {
         state: &mut ViewState,
         settings: &ViewerSettings,
         texture: Option<&(String, egui::TextureHandle)>,
+        language: Language,
     ) -> bool {
         let available_size = ui.available_size();
         let bg_color = Color32::from_rgb(
@@ -85,9 +88,10 @@ impl ViewerWidget {
             let clipboard_available = self.clipboard.is_available();
 
             // 复制图片
+            let copy_image_label = format!("📋 {}", get_text("copy_image", language));
             let copy_image_btn = ui.add_enabled(
                 has_image && clipboard_available,
-                egui::Button::new("📋 复制图片"),
+                egui::Button::new(copy_image_label),
             );
             if copy_image_btn.clicked() {
                 if let Some(ref image) = state.current_image {
@@ -98,9 +102,10 @@ impl ViewerWidget {
             }
 
             // 复制文件路径
+            let copy_path_label = format!("📋 {}", get_text("copy_path", language));
             let copy_path_btn = ui.add_enabled(
                 has_image && clipboard_available,
-                egui::Button::new("📋 复制文件路径"),
+                egui::Button::new(copy_path_label),
             );
             if copy_path_btn.clicked() {
                 if let Some(ref image) = state.current_image {
@@ -113,8 +118,9 @@ impl ViewerWidget {
             ui.separator();
 
             // 在文件夹中显示
+            let show_in_folder_label = format!("📁 {}", get_text("show_in_folder", language));
             let show_in_folder_btn =
-                ui.add_enabled(has_image, egui::Button::new("📁 在文件夹中显示"));
+                ui.add_enabled(has_image, egui::Button::new(show_in_folder_label));
             if show_in_folder_btn.clicked() {
                 if let Some(ref image) = state.current_image {
                     let path = image.path();
@@ -128,10 +134,11 @@ impl ViewerWidget {
             self.render_image(ui, image, state, rect, settings, texture);
         } else {
             // 无图像占位符
+            let no_image_text = get_text("no_image", language);
             ui.painter().text(
                 rect.center(),
                 egui::Align2::CENTER_CENTER,
-                "🖼 未选择图像\n按 Ctrl+O 打开图像或从图库中选择\n也可以直接拖拽图像到窗口",
+                format!("🖼 {}", no_image_text),
                 egui::FontId::proportional(16.0),
                 Color32::GRAY,
             );

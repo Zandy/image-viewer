@@ -70,7 +70,9 @@ build/
 *.AppImage
 
 # === wix ===
-wix/
+# 允许跟踪 WiX 源文件，但忽略构建产物
+wix/*.wixobj
+wix/*.wixpdb
 *.wixobj
 *.wixpdb
 *.profraw

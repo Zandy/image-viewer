@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*"
+             Name="OAS Image Viewer"
+             Language="1033"
+             Version="0.3.3"
+             Manufacturer="OpenAppSys"
+             UpgradeCode="A3F5B2C1-D4E6-7890-ABCD-EF1234567890">
+        <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine"/>
+        
+        <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."/>
+        
+        <MediaTemplate EmbedCab="yes"/>
+        
+        <Feature Id="ProductFeature" Title="OAS Image Viewer" Level="1">
+            <ComponentGroupRef Id="ProductComponents"/>
+            <ComponentRef Id="ApplicationShortcut"/>
+            <ComponentRef Id="ApplicationShortcutDesktop"/>
+        </Feature>
+        
+        <!-- Icon -->
+        <Icon Id="AppIcon.ico" SourceFile="assets\icon.ico"/>
+        <Property Id="ARPPRODUCTICON" Value="AppIcon.ico"/>
+        
+        <!-- Install directory -->
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFiles64Folder">
+                <Directory Id="INSTALLFOLDER" Name="OAS Image Viewer">
+                    <Component Id="MainExecutable" Guid="B4C6D3E2-F5A7-8901-BCDE-F23456789012">
+                        <File Id="OASImageViewerEXE" Source="target\release\oas-image-viewer.exe" KeyPath="yes">
+                            <Shortcut Id="startmenuOASImageViewer" Directory="ProgramMenuFolder" Name="OAS Image Viewer"
+                                      WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" Advertise="yes"/>
+                            <Shortcut Id="desktopOASImageViewer" Directory="DesktopFolder" Name="OAS Image Viewer"
+                                      WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" Advertise="yes"/>
+                        </File>
+                    </Component>
+                    <Component Id="AppIcon" Guid="C5D7E4F3-A6B8-9012-CDEF-345678901234">
+                        <File Id="IconICO" Source="assets\icon.ico" KeyPath="yes"/>
+                    </Component>
+                </Directory>
+            </Directory>
+            
+            <Directory Id="ProgramMenuFolder" Name="Programs"/>
+            <Directory Id="DesktopFolder" Name="Desktop"/>
+        </Directory>
+        
+        <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+            <ComponentRef Id="MainExecutable"/>
+            <ComponentRef Id="AppIcon"/>
+        </ComponentGroup>
+        
+        <Component Id="ApplicationShortcut" Directory="ProgramMenuFolder" Guid="D6E8F5A4-B7C9-0123-DEF0-456789012345">
+            <Shortcut Id="ApplicationStartMenuShortcut" Name="OAS Image Viewer" Description="A modern image viewer"
+                      Target="[#OASImageViewerEXE]" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico"/>
+            <RemoveFolder Id="CleanUpShortCut" Directory="ProgramMenuFolder" On="uninstall"/>
+            <RegistryValue Root="HKCU" Key="Software\OpenAppSys\OASImageViewer" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+        </Component>
+        
+        <Component Id="ApplicationShortcutDesktop" Directory="DesktopFolder" Guid="E7F9A6B5-C8D0-1234-EF01-567890123456">
+            <Shortcut Id="ApplicationDesktopShortcut" Name="OAS Image Viewer" Description="A modern image viewer"
+                      Target="[#OASImageViewerEXE]" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico"/>
+            <RemoveFolder Id="CleanUpDesktop" Directory="DesktopFolder" On="uninstall"/>
+            <RegistryValue Root="HKCU" Key="Software\OpenAppSys\OASImageViewer" Name="desktop" Type="integer" Value="1" KeyPath="yes"/>
+        </Component>
+    </Product>
+</Wix>

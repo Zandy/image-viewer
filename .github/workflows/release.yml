@@ -229,64 +229,7 @@ jobs:
         cp README.md LICENSE "$PKG_DIR/"
         
         # 创建安装脚本
-        cat > "$PKG_DIR/install.sh" << 'EOF'
-#!/bin/bash
-set -e
-
-INSTALL_PREFIX="${1:-/usr/local}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-echo "Installing OAS Image Viewer to $INSTALL_PREFIX..."
-
-# 安装二进制文件
-sudo install -Dm755 "$SCRIPT_DIR/bin/oas-image-viewer" "$INSTALL_PREFIX/bin/oas-image-viewer"
-
-# 安装 .desktop 文件
-sudo install -Dm644 "$SCRIPT_DIR/share/applications/oas-image-viewer.desktop" \
-    "$INSTALL_PREFIX/share/applications/oas-image-viewer.desktop"
-
-# 安装图标
-for size in 32 48 128 256; do
-    icon_file="$SCRIPT_DIR/share/icons/hicolor/${size}x${size}/apps/oas-image-viewer.png"
-    if [ -f "$icon_file" ]; then
-        sudo install -Dm644 "$icon_file" \
-            "$INSTALL_PREFIX/share/icons/hicolor/${size}x${size}/apps/oas-image-viewer.png"
-    fi
-done
-
-# 更新图标缓存
-if command -v gtk-update-icon-cache &> /dev/null; then
-    sudo gtk-update-icon-cache -f -t "$INSTALL_PREFIX/share/icons/hicolor" || true
-fi
-
-echo "✅ Installation complete!"
-echo "You can now launch 'oas-image-viewer' from the terminal or application menu."
-EOF
-        chmod +x "$PKG_DIR/install.sh"
-        
-        # 创建卸载脚本
-        cat > "$PKG_DIR/uninstall.sh" << 'EOF'
-#!/bin/bash
-set -e
-
-INSTALL_PREFIX="${1:-/usr/local}"
-
-echo "Uninstalling OAS Image Viewer from $INSTALL_PREFIX..."
-
-sudo rm -f "$INSTALL_PREFIX/bin/oas-image-viewer"
-sudo rm -f "$INSTALL_PREFIX/share/applications/oas-image-viewer.desktop"
-
-for size in 32 48 128 256; do
-    sudo rm -f "$INSTALL_PREFIX/share/icons/hicolor/${size}x${size}/apps/oas-image-viewer.png"
-done
-
-# 更新图标缓存
-if command -v gtk-update-icon-cache &> /dev/null; then
-    sudo gtk-update-icon-cache -f -t "$INSTALL_PREFIX/share/icons/hicolor" || true
-fi
-
-echo "✅ Uninstallation complete!"
-EOF
+        echo 'IyEvYmluL2Jhc2gKc2V0IC1lCgpJTlNUQUxMX1BSRUZJWD0iJHsxOi0vdXNyL2xvY2FsfSIKCmVjaG8gIlVuaW5zdGFsbGluZyBPQVMgSW1hZ2UgVmlld2VyIGZyb20gJElOU1RBTExfUFJFRklYLi4uIgoKc3VkbyBybSAtZiAiJElOU1RBTExfUFJFRklYL2Jpbi9vYXMtaW1hZ2Utdmlld2VyIgpzdWRvIHJtIC1mICIkSU5TVEFMTF9QUkVGSVgvc2hhcmUvYXBwbGljYXRpb25zL29hcy1pbWFnZS12aWV3ZXIuZGVza3RvcCIKCmZvciBzaXplIGluIDMyIDQ4IDEyOCAyNTY7IGRvCiAgICBzdWRvIHJtIC1mICIkSU5TVEFMTF9QUkVGSVgvc2hhcmUvaWNvbnMvaGljb2xvci8ke3NpemV9eCR7c2l6ZX0vYXBwcy9vYXMtaW1hZ2Utdmlld2VyLnBuZyIKZG9uZQoKIyDmm7TmlrDlm77moIfnvJPlrZgKaWYgY29tbWFuZCAtdiBndGstdXBkYXRlLWljb24tY2FjaGUgJj4gL2Rldi9udWxsOyB0aGVuCiAgICBzdWRvIGd0ay11cGRhdGUtaWNvbi1jYWNoZSAtZiAtdCAiJElOU1RBTExfUFJFRklYL3NoYXJlL2ljb25zL2hpY29sb3IiIHx8IHRydWUKZmkKCmVjaG8gIuKchSBVbmluc3RhbGxhdGlvbiBjb21wbGV0ZSEiCg==' | base64 -d > $PKG_DIR/install.sh
         chmod +x "$PKG_DIR/uninstall.sh"
         
         # 打包
@@ -482,36 +425,8 @@ EOF
         Copy-Item "LICENSE" "$pkgDir\"
         
         # 创建安装脚本
-        @'
-@echo off
-echo Installing OAS Image Viewer...
-echo.
-
-set "INSTALL_DIR=%LOCALAPPDATA%\OAS Image Viewer"
-if "%1"=="--system" set "INSTALL_DIR=%ProgramFiles%\OAS Image Viewer"
-
-echo Installing to: %INSTALL_DIR%
-if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
-
-copy /Y "%~dp0oas-image-viewer.exe" "%INSTALL_DIR%\"
-copy /Y "%~dp0oas-image-viewer.exe.manifest" "%INSTALL_DIR%\" 2>nul
-copy /Y "%~dp0oas-image-viewer.ico" "%INSTALL_DIR%\" 2>nul
-
-:: Add to PATH (user)
-echo Adding to PATH...
-setx PATH "%PATH%;%INSTALL_DIR%" >nul 2>&1
-
-:: Create Start Menu shortcut
-set "STARTMENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs"
-if exist "%STARTMENU%" (
-    powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%STARTMENU%\OAS Image Viewer.lnk'); $Shortcut.TargetPath = '%INSTALL_DIR%\oas-image-viewer.exe'; $Shortcut.WorkingDirectory = '%INSTALL_DIR%'; $Shortcut.IconLocation = '%INSTALL_DIR%\oas-image-viewer.ico,0'; $Shortcut.Save()"
-)
-
-echo.
-echo Installation complete!
-echo You can now run 'oas-image-viewer' from the command line or Start Menu.
-pause
-'@ | Out-File -FilePath "$pkgDir\install.bat" -Encoding ASCII
+        $script = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('QGVjaG8gb2ZmCmVjaG8gSW5zdGFsbGluZyBPQVMgSW1hZ2UgVmlld2VyLi4uCmVjaG8uCgpzZXQgIklOU1RBTExfRElSPSVMT0NBTEFQUERBVEElXE9BUyBJbWFnZSBWaWV3ZXIiCmlmICIlMSI9PSItLXN5c3RlbSIgc2V0ICJJTlNUQUxMX0RJUj0lUHJvZ3JhbUZpbGVzJVxPQVMgSW1hZ2UgVmlld2VyIgoKZWNobyBJbnN0YWxsaW5nIHRvOiAlSU5TVEFMTF9ESVIlCmlmIG5vdCBleGlzdCAiJUlOU1RBTExfRElSJSIgbWtkaXIgIiVJTlNUQUxMX0RJUiUiCgpjb3B5IC9ZICIlfmRwMG9hcy1pbWFnZS12aWV3ZXIuZXhlIiAiJUlOU1RBTExfRElSJVwiCmNvcHkgL1kgIiV+ZHAwb2FzLWltYWdlLXZpZXdlci5leGUubWFuaWZlc3QiICIlSU5TVEFMTF9ESVIlXCIgMj5udWwKY29weSAvWSAiJX5kcDBvYXMtaW1hZ2Utdmlld2VyLmljbyIgIiVJTlNUQUxMX0RJUiVcIiAyPm51bAoKOjogQWRkIHRvIFBBVEggKHVzZXIpCmVjaG8gQWRkaW5nIHRvIFBBVEguLi4Kc2V0eCBQQVRIICIlUEFUSCU7JUlOU1RBTExfRElSJSIgPm51bCAyPiYxCgo6OiBDcmVhdGUgU3RhcnQgTWVudSBzaG9ydGN1dApzZXQgIlNUQVJUTUVOVT0lQVBQREFUQSVcTWljcm9zb2Z0XFdpbmRvd3NcU3RhcnQgTWVudVxQcm9ncmFtcyIKaWYgZXhpc3QgIiVTVEFSVE1FTlUlIiAoCiAgICBwb3dlcnNoZWxsIC1Db21tYW5kICIkV3NoU2hlbGwgPSBOZXctT2JqZWN0IC1jb21PYmplY3QgV1NjcmlwdC5TaGVsbDsgJFNob3J0Y3V0ID0gJFdzaFNoZWxsLkNyZWF0ZVNob3J0Y3V0KCclU1RBUlRNRU5VJVxPQVMgSW1hZ2UgVmlld2VyLmxuaycpOyAkU2hvcnRjdXQuVGFyZ2V0UGF0aCA9ICclSU5TVEFMTF9ESVIlXG9hcy1pbWFnZS12aWV3ZXIuZXhlJzsgJFNob3J0Y3V0LldvcmtpbmdEaXJlY3RvcnkgPSAnJUlOU1RBTExfRElSJSc7ICRTaG9ydGN1dC5JY29uTG9jYXRpb24gPSAnJUlOU1RBTExfRElSJVxvYXMtaW1hZ2Utdmlld2VyLmljbywwJzsgJFNob3J0Y3V0LlNhdmUoKSIKKQoKZWNoby4KZWNobyBJbnN0YWxsYXRpb24gY29tcGxldGUhCmVjaG8gWW91IGNhbiBub3cgcnVuICdvYXMtaW1hZ2Utdmlld2VyJyBmcm9tIHRoZSBjb21tYW5kIGxpbmUgb3IgU3RhcnQgTWVudS4KcGF1c2UK'))
+        $script | Out-File -FilePath "$pkgDir\install.bat" -Encoding UTF8 -Encoding ASCII
         
         # 打包
         cd dist

@@ -154,8 +154,8 @@ jobs:
           # 使用 mt.exe（Windows SDK）嵌入清单
           $mtPath = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\mt.exe"
           if (-not (Test-Path $mtPath)) {
-            # 尝试查找 mt.exe
-            $mtCandidates = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "mt.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            # 尝试查找 mt.exe（只使用 x64 版本，排除 arm64）
+            $mtCandidates = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "mt.exe" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*\x64\*" } | Select-Object -First 1
             if ($mtCandidates) {
               $mtPath = $mtCandidates.FullName
             }
@@ -558,13 +558,6 @@ jobs:
         
         if (Test-Path $manifest) {
           $mtPath = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\mt.exe"
-          if (-not (Test-Path $mtPath)) {
-            $mtCandidates = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "mt.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($mtCandidates) {
-              $mtPath = $mtCandidates.FullName
-            }
-          }
-          
           if (-not (Test-Path $mtPath)) {
             # 尝试查找 mt.exe（只使用 x64 版本，排除 arm64）
             $mtCandidates = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "mt.exe" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*\x64\*" } | Select-Object -First 1

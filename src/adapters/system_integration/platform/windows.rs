@@ -34,11 +34,9 @@ fn is_context_menu_registered() -> bool {
         REGISTRY_BASE_PATH, first_ext
     );
 
-    unsafe {
-        match winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER).open_subkey(&reg_path) {
-            Ok(_) => true,
-            Err(_) => false,
-        }
+    match winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER).open_subkey(&reg_path) {
+        Ok(_) => true,
+        Err(_) => false,
     }
 }
 
@@ -47,14 +45,12 @@ fn is_default_app_registered() -> bool {
     // 检查 .png 文件的默认打开方式
     let reg_path = r"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.png\UserChoice";
 
-    unsafe {
-        match winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER).open_subkey(reg_path) {
-            Ok(key) => match key.get_value::<String>("ProgId") {
-                Ok(prog_id) => prog_id.contains("OASImageViewer"),
-                Err(_) => false,
-            },
+    match winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER).open_subkey(reg_path) {
+        Ok(key) => match key.get_value::<String>("ProgId") {
+            Ok(prog_id) => prog_id.contains("OASImageViewer"),
             Err(_) => false,
-        }
+        },
+        Err(_) => false,
     }
 }
 

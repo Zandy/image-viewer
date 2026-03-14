@@ -168,10 +168,15 @@ mod tests {
     use super::*;
 
     fn init_for_test() {
-        // 确保语言包已初始化
-        if CHINESE_PACK.get().is_none() {
-            initialize();
-        }
+        // 使用 get_or_init 确保线程安全，避免竞态条件
+        CHINESE_PACK.get_or_init(|| {
+            try_load_from_filesystem("zh-CN")
+                .unwrap_or_else(|| load_embedded_pack("zh-CN"))
+        });
+        ENGLISH_PACK.get_or_init(|| {
+            try_load_from_filesystem("en-US")
+                .unwrap_or_else(|| load_embedded_pack("en-US"))
+        });
     }
 
     #[test]

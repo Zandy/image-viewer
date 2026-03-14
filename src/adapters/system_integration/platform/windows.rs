@@ -46,7 +46,7 @@ fn is_default_app_registered() -> bool {
     let reg_path = r"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.png\UserChoice";
 
     match winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER).open_subkey(reg_path) {
-        Ok(key) => match key.get_value::<String>("ProgId") {
+        Ok(key) => match key.get_value::<String, _>("ProgId") {
             Ok(prog_id) => prog_id.contains("OASImageViewer"),
             Err(_) => false,
         },
